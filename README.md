@@ -54,8 +54,7 @@ Four themes ship with it: **Eclipse** (dark greys), **Zenith** (the same on whit
 
 ## Install
 
-> **You need** Arch Linux or an Arch-based distro (CachyOS, EndeavourOS…), a user with `sudo`
-> and a GPU that runs Wayland. In a VM, turn on 3D acceleration.
+> **You need** Arch Linux or an Arch-based distro (CachyOS, EndeavourOS…).
 
 ```bash
 sudo pacman -Syu --needed git
