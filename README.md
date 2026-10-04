@@ -109,6 +109,16 @@ orrery-theme reload
 
 </details>
 
+### Uninstall
+
+```bash
+cd ~/Orrery-dotfiles && ./uninstall.sh
+```
+
+It removes the config links and everything the theme put into your apps and the login
+screen, and puts back the configs the installer set aside. Packages stay installed.
+`--dry-run` shows what it would do. Then delete the folder.
+
 ## Keybinds
 
 | Keys | Action |
