@@ -28,9 +28,9 @@ PKGS_REPO=(
   python jq gsettings-desktop-schemas xdg-desktop-portal-gtk sddm
 )
 
-# Not in the official Arch repos. On CachyOS these ship in the [cachyos] repo;
-# on plain Arch they come from the AUR.
-PKGS_AUR=(adwaita-qt5 adwaita-qt6)
+# Everything comes from the official repos: no AUR, nothing to compile. (Qt
+# apps use Qt's built-in Fusion style with the theme's colours, which used to
+# need adwaita-qt from the AUR.)
 
 # ============================================================================
 # Presentation
@@ -85,56 +85,6 @@ conflict_targets() {
     | sed 's/^[[:space:]]*\*[[:space:]]*//' | sort -u
 }
 
-# Build and install yay from the AUR, using makepkg directly.
-#
-# Deliberately NOT yay-bin/paru-bin: those are prebuilt and linked against a
-# fixed libalpm soname, so on a system whose pacman has moved on they install
-# and then die with
-#     error while loading shared libraries: libalpm.so.15
-# Building from source compiles against whatever pacman is actually installed.
-#
-# yay is worth having rather than calling makepkg per package, because it also
-# resolves split packages to their PackageBase and handles PGP keys for source
-# tarballs — both of which bit this script when it tried to do it by hand.
-bootstrap_yay() {
-  local tmp rc=0
-  # --noconfirm: the user already said yes at our prompt. Asking again for a
-  # 31-package, ~150 MB dependency transaction reads like a duplicate question,
-  # and answering "n" to it silently aborts the whole yay build.
-  info "Installing base-devel, git and go (~150 MB, needed to build yay)..."
-  if ! sudo pacman -S --needed --noconfirm base-devel git go; then
-    warn "Could not install the build dependencies (base-devel, git, go)."
-    warn "Check your mirrors and network, then re-run."
-    return 1
-  fi
-
-  # Guard the mktemp: an empty $tmp would make the clone target "/yay" and the
-  # later cleanup "rm -rf ''", both of which fail confusingly rather than clearly.
-  tmp="$(mktemp -d)" || { warn "Could not create a temporary directory."; return 1; }
-  info "Cloning yay from the AUR..."
-  if git clone --depth 1 https://aur.archlinux.org/yay.git "$tmp/yay" >/dev/null 2>&1; then
-    if [[ -f "$tmp/yay/PKGBUILD" ]]; then
-      info "Building yay — this compiles Go, so give it a minute."
-      # Subshell so a failed cd cannot leave us somewhere unexpected.
-      ( cd "$tmp/yay" && makepkg -si --noconfirm ) || rc=1
-    else
-      warn "Cloned yay but there is no PKGBUILD in it."
-      rc=1
-    fi
-  else
-    warn "Could not clone yay from the AUR."
-    rc=1
-  fi
-  rm -rf "$tmp"
-
-  if [[ $rc -eq 0 ]] && command -v yay >/dev/null 2>&1; then
-    ok "yay installed."
-    return 0
-  fi
-  warn "Could not install yay."
-  return 1
-}
-
 usage() {
   cat <<'EOF'
 Installer for thomasmartinoa/Orrery-dotfiles
@@ -146,7 +96,6 @@ Installer for thomasmartinoa/Orrery-dotfiles
   ./install.sh --no-migrate   never move anything; stop instead
   ./install.sh --skip-root    skip root-owned bits (GTK config in /root, SDDM theme)
   ./install.sh --no-reboot    don't offer to reboot at the end
-  ./install.sh --no-aur       don't offer to install yay / AUR packages
   ./install.sh --help         this text
 
 On a fresh machine, Hyprland writes its own default ~/.config/hypr/hyprland.lua
@@ -162,7 +111,7 @@ EOF
 # ============================================================================
 # Arguments
 # ============================================================================
-STOW_ONLY=0; DRY_RUN=0; MIGRATE=0; NO_MIGRATE=0; SKIP_ROOT=0; NO_REBOOT=0; NO_AUR=0
+STOW_ONLY=0; DRY_RUN=0; MIGRATE=0; NO_MIGRATE=0; SKIP_ROOT=0; NO_REBOOT=0
 for arg in "$@"; do
   case "$arg" in
     --stow-only)  STOW_ONLY=1 ;;
@@ -171,7 +120,7 @@ for arg in "$@"; do
     --no-migrate) NO_MIGRATE=1 ;;
     --skip-root)  SKIP_ROOT=1 ;;
     --no-reboot|--no-logout)  NO_REBOOT=1 ;;
-    --no-aur)     NO_AUR=1 ;;
+    --no-aur)     ;;   # nothing comes from the AUR any more; kept so old commands work
     -h|--help)   usage; exit 0 ;;
     *) printf 'unknown option: %s\n\n' "$arg" >&2; usage >&2; exit 2 ;;
   esac
@@ -196,7 +145,6 @@ if [[ $STOW_ONLY -eq 0 && $DRY_RUN -eq 0 ]]; then
     warn "pacman not found — this installer only automates Arch-based systems."
     warn "Install these by hand, then re-run with --stow-only:"
     block "${PKGS_REPO[*]}"
-    block "${PKGS_AUR[*]}"
     die "Nothing installed."
   fi
 
@@ -257,76 +205,6 @@ if [[ $STOW_ONLY -eq 0 && $DRY_RUN -eq 0 ]]; then
     ok "Repo packages done."
   fi
 
-  # Some of PKGS_AUR may be in a configured repo (CachyOS); the rest need the AUR.
-  from_repo=(); need_aur=()
-  for pkg in "${PKGS_AUR[@]}"; do
-    if pacman -Si "$pkg" >/dev/null 2>&1; then from_repo+=("$pkg"); else need_aur+=("$pkg"); fi
-  done
-
-  if [[ ${#from_repo[@]} -gt 0 ]]; then
-    info "In a configured repo: ${from_repo[*]}"
-    # (not fatal: this is Qt styling, not the desktop)
-    sudo pacman -S --needed "${from_repo[@]}" || warn "Could not install: ${from_repo[*]}"
-  fi
-
-  if [[ ${#need_aur[@]} -gt 0 ]]; then
-    aur_helper=""
-    command -v paru >/dev/null 2>&1 && aur_helper=paru
-    [[ -z "$aur_helper" ]] && command -v yay >/dev/null 2>&1 && aur_helper=yay
-
-    # Nothing to build with. These packages are not optional extras —
-    # adwaita-qt* is what makes Qt apps take the palette — so offer to
-    # bootstrap a helper rather than just printing names.
-    if [[ -n "$aur_helper" ]]; then
-      # --noconfirm: helpers ask their own questions (cleanBuild, view diffs,
-      # edit PKGBUILD). Mid-install those read as duplicates of consent already
-      # given, and an unanswered one aborts the whole batch. These are two
-      # named packages, not an open-ended set.
-      info "Installing with $aur_helper: ${need_aur[*]}"
-      if "$aur_helper" -S --needed --noconfirm "${need_aur[@]}"; then
-        ok "AUR packages done."
-      else
-        warn "$aur_helper could not install all of: ${need_aur[*]} (the rest of the install carries on)"
-      fi
-    elif [[ $NO_AUR -eq 1 ]]; then
-      warn "--no-aur given. Install these by hand to complete the rice:"
-      block "${need_aur[*]}"
-    else
-      warn "These are only in the AUR: ${need_aur[*]}"
-      info "Without them, Qt apps fall back to the Fusion style."
-      info "No AUR helper found — yay can be built from source and used to get them."
-      echo
-      if [[ -t 0 && -t 1 ]]; then
-        reply=""
-        read -r -p "  $(printf '%s' "${C_ACC}?${C_RST}") Install yay and use it to fetch them? [Y/n] " reply </dev/tty || reply="n"
-        echo
-        case "${reply,,}" in
-          ""|y|yes)
-            if bootstrap_yay; then
-              info "Installing with yay: ${need_aur[*]}"
-              if yay -S --needed --noconfirm "${need_aur[@]}"; then
-                ok "AUR packages done."
-              else
-                warn "yay could not install all of them:"
-                block "${need_aur[*]}"
-              fi
-            else
-              warn "Install an AUR helper by hand, then re-run. Needed:"
-              block "${need_aur[*]}"
-            fi
-            ;;
-          *)
-            warn "Skipped. Install these by hand to complete the rice:"
-            block "${need_aur[*]}"
-            ;;
-        esac
-      else
-        warn "Not a terminal — cannot ask. Install an AUR helper (paru/yay)"
-        warn "and re-run. Needed:"
-        block "${need_aur[*]}"
-      fi
-    fi
-  fi
 else
   skip "Packages"
 fi

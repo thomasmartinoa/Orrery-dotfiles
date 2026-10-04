@@ -65,7 +65,7 @@ cd ~/Orrery-dotfiles && ./install.sh
 Reboot, choose **Hyprland** on the login screen, and press **`SUPER` `SPACE`** to find
 everything. To update: `cd ~/Orrery-dotfiles && git pull && ./install.sh`.
 
-The installer installs the packages (offering to build `yay` for the three AUR ones), backs up
+The installer installs the packages (all from Arch's official repos), backs up
 any configs in the way after asking, links the configs with GNU Stow and enables
 NetworkManager, Bluetooth, power profiles and SDDM. It's safe to run again and never deletes
 your files.
@@ -79,7 +79,6 @@ your files.
 | `--stow-only` | Skip installing packages |
 | `--migrate` · `--no-migrate` | Back up blocking files without asking · never move anything |
 | `--skip-root` | Don't touch `/root`, SDDM or sudoers |
-| `--no-aur` | Skip the AUR packages |
 
 </details>
 

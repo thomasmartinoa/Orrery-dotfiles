@@ -54,7 +54,7 @@ reasoning in the colors.toml header comment.
 1. `cp -r themes/eclipse themes/<id>` (or `zenith` for a light one).
    `<id>` is lowercase-with-dashes; `name` in colors.toml is the display name.
 2. Edit `colors.toml`:
-   - `mode` drives GTK (`adw-gtk3` / `adw-gtk3-dark`), Qt (`Adwaita` / `Adwaita-Dark`),
+   - `mode` drives GTK (`adw-gtk3` / `adw-gtk3-dark`), Qt (Qt's built-in `Fusion` style drawn in the theme's colours; `qt_style` in `[apps]`),
      icons (Papirus-Light / Papirus-Dark), nvim `background`, the shell's `Theme.light`.
    - **The ramp**: `bg0 < bg1 < bg2 < bg3 < bg4` backgrounds (bg0 = bar/cards), then
      `accent_dim < accent_mid < accent_light < accent_bright` and `fg` for text.

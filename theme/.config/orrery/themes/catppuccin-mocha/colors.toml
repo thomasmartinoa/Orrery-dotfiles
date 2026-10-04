@@ -80,5 +80,5 @@ conflict  = "#fab387"
 gtk_theme       = "adw-gtk3-dark"
 icon_theme      = "Papirus-Dark-indigo"   # folders closest to the lavender accent
 cursor_theme    = "default"
-qt_style        = "Adwaita-Dark"
+qt_style        = "Fusion"
 nvim_colorscheme = "catppuccin-mocha"
