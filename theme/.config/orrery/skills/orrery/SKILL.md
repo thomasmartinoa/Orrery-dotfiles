@@ -170,7 +170,9 @@ add a step. Test with a fake HOME only if you can fully stub the tools
 (`hyprctl`, `qs`, `chromium`, `gsettings`, `sudo`, and `pgrep` returning 1) —
 an earlier run leaked into the live session. Don't stub optional apps the user
 may not have (spicetify, code): a fresh machine lacks them, and that is the
-path to test. The real test is a VM: `install.sh --stow-only --skip-root`
+path to test. install.sh runs under `set -e`: a step that may "fail" harmlessly
+(`pkill` of nothing, `systemctl stop` of a stopped unit) ends in `|| true`, or
+the rest of the install silently never runs. The real test is a VM: `install.sh --stow-only --skip-root`
 over SSH covers everything but the sudo steps.
 
 ## 6. Finish

@@ -628,19 +628,31 @@ else
 fi
 
 # ============================================================================
-# Shell odds and ends: the Quickshell shell owns notifications, so a swaync
-# left from an earlier version must not be D-Bus-activated behind its back
-# (it is, on every login, and then fails five times); and the /orrery agent skill is
+# Shell odds and ends: the Quickshell shell is the notification daemon, so any
+# other one installed (dunst from Arch's Hyprland profile, mako, swaync from an
+# earlier version) must not be D-Bus-activated behind its back: whichever
+# claims org.freedesktop.Notifications first wins, and the shell's popups and
+# notification centre stay empty. Each one names a systemd user unit in its
+# D-Bus service file; masking that unit stops the activation (the package
+# stays). And the /orrery agent skill is
 # linked into Claude Code / Codex / the generic ~/.agents dir so
 # `/orrery <request>` works in any coding agent.
 step "Shell"
 if [[ $DRY_RUN -eq 1 ]]; then
-  info "Would mask the swaync user unit and link the /orrery skill (orrery-agent skills install)."
+  info "Would mask other notification daemons' user units and link the /orrery skill (orrery-agent skills install)."
   info "Would point Thunar's \"Open Terminal Here\" at orrery-terminal."
 else
-  if command -v swaync >/dev/null 2>&1; then
-    systemctl --user mask swaync.service >/dev/null 2>&1 && ok "swaync user unit masked (the shell is the notification daemon)."
-  fi
+  for _svc in /usr/share/dbus-1/services/*.service; do
+    grep -qx 'Name=org.freedesktop.Notifications' "$_svc" 2>/dev/null || continue
+    _unit="$(sed -n 's/^SystemdService=//p' "$_svc")"
+    [[ -n "$_unit" ]] || continue
+    _bin="$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' "$_svc")"
+    # (set -e: each of these may "fail" harmlessly, e.g. nothing to stop)
+    systemctl --user stop "$_unit" >/dev/null 2>&1 || true
+    [[ -n "$_bin" ]] && { pkill -x "$(basename "$_bin")" 2>/dev/null || true; }
+    systemctl --user mask "$_unit" >/dev/null 2>&1 \
+      && ok "${_unit%.service} won't start: the shell shows notifications (unit masked)."
+  done
   "$HOME/.local/bin/orrery-text-size" reset >/dev/null 2>&1 || true   # writes the terminal font family/size overrides
   # Thunar's "Open Terminal Here" runs exo-open, which on Xfce 4.20 needs
   # xfce4-mime-helper (xfce4-settings, not installed): point it at the rice's
