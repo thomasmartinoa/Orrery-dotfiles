@@ -79,6 +79,7 @@ your files.
 | `--stow-only` | Skip installing packages |
 | `--migrate` · `--no-migrate` | Back up blocking files without asking · never move anything |
 | `--skip-root` | Don't touch `/root`, SDDM or sudoers |
+| `--no-reboot` | Don't offer to reboot at the end |
 
 </details>
 

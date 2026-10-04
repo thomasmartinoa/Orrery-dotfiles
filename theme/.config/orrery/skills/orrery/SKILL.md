@@ -161,7 +161,7 @@ Commands you will use (all `--help`/header-documented — read the script if uns
 
 ## 5. Fresh machine / install.sh
 
-`install.sh` is the source of truth for packages (`PKGS_REPO`, `PKGS_AUR`),
+`install.sh` is the source of truth for packages (`PKGS_REPO`, official repos only — no AUR),
 stow packages (`PACKAGES`), migration of pre-existing configs, pre-flight
 guards against stow "folding" `~/.local`, Qt env, theme apply, SDDM theme and
 the root-sync sudoers rule. It is idempotent; `--dry-run` exists. When you
