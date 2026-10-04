@@ -49,10 +49,10 @@ sec "Display"
 run "monitors" sh -c "hyprctl monitors -j | jq -r '.[] | \"\\(.name) \\(.width)x\\(.height)@\\(.refreshRate|floor) scale \\(.scale) at \\(.x),\\(.y) vrr=\\(.vrr)\"'"
 run "config errors" hyprctl configerrors
 run "layers" sh -c "hyprctl layers -j | jq -r '.. | .namespace? // empty' | sort | uniq -c"
-run "env" sh -c "env | grep -E '^(XDG_SESSION_TYPE|XDG_CURRENT_DESKTOP|QT_QPA_PLATFORMTHEME|QT_QPA_PLATFORM|GTK_THEME|ORRERY_SHELL|WLR_|__GLX|LIBVA)' | sort"
+run "env" sh -c "env | grep -E '^(XDG_SESSION_TYPE|XDG_CURRENT_DESKTOP|QT_QPA_PLATFORMTHEME|QT_QPA_PLATFORM|GTK_THEME|WLR_|__GLX|LIBVA)' | sort"
 
 sec "Shell"
-run "processes" sh -c "pgrep -a -x qs; pgrep -a -x wl-paste; pgrep -a -x polkit-gnome-au; pgrep -a -x hypridle; pgrep -a -x waybar; pgrep -a -x swaync"
+run "processes" sh -c "pgrep -a -x qs; pgrep -a -x wl-paste; pgrep -a -x polkit-gnome-au; pgrep -a -x hypridle"
 run "shell log: warnings/errors (last 40)" sh -c "qs log 2>/dev/null | grep -E 'WARN|ERROR|error' | grep -v desktopentry | tail -n 40"
 run "shell.json" sh -c "jq -c '.bar | {position, transparent, layout: (.layout|keys)}' '$HOME/.config/orrery/shell.json'"
 run "ipc targets" sh -c "qs ipc show 2>/dev/null | grep '^target' | tr '\n' ' '; echo"

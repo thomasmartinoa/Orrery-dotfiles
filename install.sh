@@ -8,11 +8,13 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Every top-level directory that is a stow package.
-PACKAGES=(alacritty gtk hyprland kittyterminal nvim quickshell rofi starship swaync
-          theme waybar wlogout zsh)
+PACKAGES=(alacritty gtk hyprland kittyterminal nvim quickshell starship theme zsh)
+# Stow packages of earlier versions, replaced by the Quickshell shell: their
+# old links are cleaned up after stowing (see "Symlinks").
+RETIRED_PACKAGES=(waybar rofi swaync wlogout)
 
 PKGS_REPO=(
-  hyprland hyprlock hypridle quickshell waybar rofi swaync awww
+  hyprland hyprlock hypridle quickshell
   xdg-desktop-portal-hyprland polkit-gnome qt5ct qt6ct power-profiles-daemon
   kitty alacritty zsh starship
   neovim fastfetch btop eza
@@ -28,7 +30,7 @@ PKGS_REPO=(
 
 # Not in the official Arch repos. On CachyOS these ship in the [cachyos] repo;
 # on plain Arch they come from the AUR.
-PKGS_AUR=(wlogout adwaita-qt5 adwaita-qt6)
+PKGS_AUR=(adwaita-qt5 adwaita-qt6)
 
 # ============================================================================
 # Presentation
@@ -143,7 +145,7 @@ Installer for thomasmartinoa/Orrery-dotfiles
   ./install.sh --migrate      back up blocking files without asking first
   ./install.sh --no-migrate   never move anything; stop instead
   ./install.sh --skip-root    skip root-owned bits (GTK config in /root, SDDM theme)
-  ./install.sh --no-logout    don't offer to log out at the end
+  ./install.sh --no-reboot    don't offer to reboot at the end
   ./install.sh --no-aur       don't offer to install yay / AUR packages
   ./install.sh --help         this text
 
@@ -160,7 +162,7 @@ EOF
 # ============================================================================
 # Arguments
 # ============================================================================
-STOW_ONLY=0; DRY_RUN=0; MIGRATE=0; NO_MIGRATE=0; SKIP_ROOT=0; NO_LOGOUT=0; NO_AUR=0
+STOW_ONLY=0; DRY_RUN=0; MIGRATE=0; NO_MIGRATE=0; SKIP_ROOT=0; NO_REBOOT=0; NO_AUR=0
 for arg in "$@"; do
   case "$arg" in
     --stow-only)  STOW_ONLY=1 ;;
@@ -168,7 +170,7 @@ for arg in "$@"; do
     --migrate)    MIGRATE=1 ;;
     --no-migrate) NO_MIGRATE=1 ;;
     --skip-root)  SKIP_ROOT=1 ;;
-    --no-logout)  NO_LOGOUT=1 ;;
+    --no-reboot|--no-logout)  NO_REBOOT=1 ;;
     --no-aur)     NO_AUR=1 ;;
     -h|--help)   usage; exit 0 ;;
     *) printf 'unknown option: %s\n\n' "$arg" >&2; usage >&2; exit 2 ;;
@@ -263,7 +265,7 @@ if [[ $STOW_ONLY -eq 0 && $DRY_RUN -eq 0 ]]; then
 
   if [[ ${#from_repo[@]} -gt 0 ]]; then
     info "In a configured repo: ${from_repo[*]}"
-    # (not fatal: these are the logout menu and Qt styling, not the desktop)
+    # (not fatal: this is Qt styling, not the desktop)
     sudo pacman -S --needed "${from_repo[@]}" || warn "Could not install: ${from_repo[*]}"
   fi
 
@@ -272,13 +274,13 @@ if [[ $STOW_ONLY -eq 0 && $DRY_RUN -eq 0 ]]; then
     command -v paru >/dev/null 2>&1 && aur_helper=paru
     [[ -z "$aur_helper" ]] && command -v yay >/dev/null 2>&1 && aur_helper=yay
 
-    # Nothing to build with. These packages are not optional extras — wlogout is
-    # the logout menu and adwaita-qt* is what makes Qt apps take the palette — so
-    # offer to bootstrap a helper rather than just printing names.
+    # Nothing to build with. These packages are not optional extras —
+    # adwaita-qt* is what makes Qt apps take the palette — so offer to
+    # bootstrap a helper rather than just printing names.
     if [[ -n "$aur_helper" ]]; then
       # --noconfirm: helpers ask their own questions (cleanBuild, view diffs,
       # edit PKGBUILD). Mid-install those read as duplicates of consent already
-      # given, and an unanswered one aborts the whole batch. These are three
+      # given, and an unanswered one aborts the whole batch. These are two
       # named packages, not an open-ended set.
       info "Installing with $aur_helper: ${need_aur[*]}"
       if "$aur_helper" -S --needed --noconfirm "${need_aur[@]}"; then
@@ -291,7 +293,7 @@ if [[ $STOW_ONLY -eq 0 && $DRY_RUN -eq 0 ]]; then
       block "${need_aur[*]}"
     else
       warn "These are only in the AUR: ${need_aur[*]}"
-      info "Without them: no logout menu, and Qt apps fall back to the Fusion style."
+      info "Without them, Qt apps fall back to the Fusion style."
       info "No AUR helper found — yay can be built from source and used to get them."
       echo
       if [[ -t 0 && -t 1 ]]; then
@@ -579,11 +581,21 @@ info "Stowing: ${PACKAGES[*]}"
 stow --restow --target="$HOME" --dir="$DOTFILES_DIR" "${PACKAGES[@]}"
 ok "${#PACKAGES[@]} packages linked."
 
-chmod +x "$HOME/.config/rofi/launchers/launcher.sh" \
-         "$HOME/.config/rofi/scripts/clipboard.sh" \
-         "$HOME/.config/waybar/scripts/launch.sh" \
-         "$HOME/.config/wlogout/launch.sh" \
-         "$HOME/.config/hypr/scripts/songdetail.sh" 2>/dev/null || true
+chmod +x "$HOME/.config/hypr/scripts/songdetail.sh" 2>/dev/null || true
+
+# Earlier versions linked waybar, rofi, swaync and wlogout configs; those
+# folders are gone from the repo, so their links point at nothing. Remove
+# only links into this repo: anything of the user's own stays.
+_repo_name="$(basename "$DOTFILES_DIR")"
+for _old in "${RETIRED_PACKAGES[@]}"; do
+  _dir="$HOME/.config/$_old"
+  if [[ -L "$_dir" ]]; then
+    [[ "$(readlink "$_dir")" == *"$_repo_name/$_old/"* ]] && rm -f "$_dir" && ok "Removed the old $_old link."
+  elif [[ -d "$_dir" ]]; then
+    find "$_dir" -type l -lname "*$_repo_name/$_old/*" -delete 2>/dev/null
+    find "$_dir" -depth -type d -empty -delete 2>/dev/null
+  fi
+done
 
 # ============================================================================
 # 5. Qt configuration
@@ -602,7 +614,7 @@ ok "qt5ct/qt6ct directories ready (config comes from orrery-theme)."
 # ============================================================================
 # Theme. Everything colour-related is rendered from theme/.config/orrery
 # into ~/.config/orrery/current/ (gitignored) and applied to running apps.
-# Without this step waybar/gtk/kitty/... import files that do not exist yet.
+# Without this step GTK, kitty, the shell... import files that do not exist yet.
 step "Theme"
 if [[ $DRY_RUN -eq 1 ]]; then
   info "Would run: orrery-theme set $(cat "$HOME/.config/orrery/current/theme.name" 2>/dev/null || echo eclipse)"
@@ -616,9 +628,9 @@ else
 fi
 
 # ============================================================================
-# Shell odds and ends: the Quickshell shell owns notifications, so the
-# swaync user unit must not be D-Bus-activated behind its back (it is, on
-# every login, and then fails five times); and the /orrery agent skill is
+# Shell odds and ends: the Quickshell shell owns notifications, so a swaync
+# left from an earlier version must not be D-Bus-activated behind its back
+# (it is, on every login, and then fails five times); and the /orrery agent skill is
 # linked into Claude Code / Codex / the generic ~/.agents dir so
 # `/orrery <request>` works in any coding agent.
 step "Shell"
@@ -801,7 +813,7 @@ if grep -qi 'JetBrainsMono Nerd Font Propo' <<<"$font_families"; then
   printf '  %s %s\n' "${C_OK}✓${C_RST}" "Font: JetBrainsMono Nerd Font Propo found."
 else
   printf '  %s %s\n' "${C_WRN}!${C_RST}" "${C_WRN}Font missing:${C_RST} JetBrainsMono Nerd Font ${C_HI}Propo${C_RST}"
-  printf '      %s\n' "Every waybar and swaync icon will render as a blank box."
+  printf '      %s\n' "Every icon in the bar and the menus will render as a blank box."
   printf '      %s\n' "Fix:  sudo pacman -S ttf-jetbrains-mono-nerd"
 fi
 
@@ -809,7 +821,7 @@ head2 "Live already"
 item "Configs are symlinked — Hyprland, the shell, theme engine, kitty, nvim, zsh."
 item "${C_TXT}SUPER+CTRL+R${C_RST} restarts the shell; ${C_TXT}SUPER+SPACE${C_RST} is the menu; ${C_TXT}/orrery${C_RST} in Claude Code knows the rest."
 
-head2 "Needs a re-login"
+head2 "Needs a reboot"
 item "GTK and Qt apps read their theme once, at startup."
 item "env.lua sets QT_QPA_PLATFORMTHEME and PATH — those only reach"
 item "applications launched by a fresh session."
@@ -823,33 +835,28 @@ item "a restart to follow a switch — the README has the live/restart table."
 
 printf '\n'; rule
 
-# ---------------------------------------------------------------- log out ---
-# Almost everything above needs a fresh session to take effect, so offer it
-# rather than leaving the user wondering why half the theme did not apply.
-# Default is NO: logging out drops whatever else they have open.
-if [[ $NO_LOGOUT -eq 1 || $DRY_RUN -eq 1 ]]; then
+# ----------------------------------------------------------------- reboot ---
+# The login screen, the services enabled above and every app's theme start
+# cleanly only from a fresh boot, so offer one. A reboot needs nothing from
+# the running session (a logout would have to talk to whatever Hyprland is
+# running, with whatever config it loaded), so it works from a TTY too.
+# Default is NO: rebooting closes whatever else is open.
+if [[ $NO_REBOOT -eq 1 || $DRY_RUN -eq 1 ]]; then
   :
-elif [[ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; then
-  printf '\n  %s %s\n\n' "${C_ACC}·${C_RST}" "Log out and back in to apply the rest."
 elif [[ -t 0 && -t 1 ]]; then
-  printf '\n  %s %s\n' "${C_WRN}!${C_RST}" "Logging out will close everything you have open."
+  printf '\n  %s %s\n' "${C_WRN}!${C_RST}" "Rebooting closes everything you have open."
   reply=""
-  read -r -p "  $(printf '%s' "${C_ACC}?${C_RST}") Log out of Hyprland now? [y/N] " reply </dev/tty || reply="n"
+  read -r -p "  $(printf '%s' "${C_ACC}?${C_RST}") Reboot now? [y/N] " reply </dev/tty || reply="n"
   echo
   case "${reply,,}" in
     y|yes)
-      printf '  %s %s\n\n' "${C_ACC}·${C_RST}" "Logging out..."
-      # Do not let a failed dispatch abort the script under `set -e` — the
-      # install already succeeded, and a bare hyprctl error would look like it
-      # had not.
-      if ! hyprctl dispatch exit 2>/dev/null; then
-        warn "Could not reach Hyprland. Log out by hand (SUPER+M)."
-      fi
+      printf '  %s %s\n\n' "${C_ACC}·${C_RST}" "Rebooting..."
+      systemctl reboot || warn "Could not reboot. Run: systemctl reboot"
       ;;
     *)
-      printf '  %s %s\n\n' "${C_ACC}·${C_RST}" "Log out when you are ready — ${C_TXT}SUPER+M${C_RST} opens the logout menu."
+      printf '  %s %s\n\n' "${C_ACC}·${C_RST}" "Reboot when you are ready, then pick ${C_TXT}Hyprland${C_RST} on the login screen."
       ;;
   esac
 else
-  printf '\n  %s %s\n\n' "${C_ACC}·${C_RST}" "Log out and back in to apply the rest."
+  printf '\n  %s %s\n\n' "${C_ACC}·${C_RST}" "Reboot, then pick Hyprland on the login screen."
 fi

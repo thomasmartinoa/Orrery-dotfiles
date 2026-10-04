@@ -1,37 +1,5 @@
 #!/usr/bin/env bash
-# orrery-theme-menu [theme|wallpaper] — open the shell's picker; with no shell
-# running, a rofi list of themes (--rofi forces it).
-set -uo pipefail
-
-# The shell has its own picker (image grid); rofi is the fallback.
-if [[ "${1:-}" != "--rofi" ]] && command -v qs >/dev/null 2>&1 && pgrep -x qs >/dev/null 2>&1; then
-    exec qs ipc call picker toggle "${1:-theme}"
-fi
-
-if pgrep -x rofi >/dev/null 2>&1; then
-    pkill -x rofi
-    exit 0
-fi
-
-THEME="$HOME/.config/rofi/clipboard.rasi"
-THEMES_DIR="$HOME/.config/orrery/themes"
-current="$(orrery-theme current)"
-
-mapfile -t names < <(orrery-theme list | sed 's/^[* ] //')
-[[ ${#names[@]} -gt 0 ]] || exit 0
-
-row=0
-build_menu() {
-    local i name pretty mode
-    for i in "${!names[@]}"; do
-        name="${names[$i]}"
-        pretty="$(sed -n 's/^name *= *"\(.*\)".*/\1/p' "$THEMES_DIR/$name/colors.toml")"
-        mode="$(sed -n 's/^mode *= *"\(.*\)".*/\1/p' "$THEMES_DIR/$name/colors.toml")"
-        [[ "$name" == "$current" ]] && row=$i
-        printf '%s  ·  %s\n' "${pretty:-$name}" "$mode"
-    done
-}
-
-index=$(build_menu | rofi -dmenu -format i -no-custom -theme "$THEME" -p "theme" -selected-row "$row")
-[[ "$index" =~ ^[0-9]+$ ]] || exit 0
-orrery-theme set "${names[$index]}" >/dev/null
+# orrery-theme-menu [theme|wallpaper] — open the shell's picker (an image grid
+# of themes or of the current theme's wallpapers); starts the shell first if
+# it is not running.
+exec "$HOME/.config/hypr/scripts/shell.sh" call picker toggle "${1:-theme}"

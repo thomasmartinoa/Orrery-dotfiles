@@ -6,10 +6,10 @@ import Quickshell.Hyprland
 import qs.Commons
 import qs.Services
 
-// Power menu — a faithful port of the wlogout layout + style:
+// Power menu — the old wlogout layout + style, ported:
 // five 190x174 buttons 38px apart, centred; wlogout's own PNG icons (light
 // "-rest" on the dark button, dark "-hover" on the light hover fill, mode
-// aware like wlogout.css.tpl); first button focused; keys l o h r s,
+// aware); first button focused; keys l e u h r s,
 // arrows + Enter, Escape. The backdrop is blurred by the Hyprland layer
 // rule for the "orrery-powermenu" namespace, like wlogout's was.
 Scope {
@@ -24,7 +24,8 @@ Scope {
         function close(): void { scope.open = false }
     }
 
-    readonly property string icons: Quickshell.env("HOME") + "/.config/wlogout/icons/"
+    // the PNGs that came with wlogout, kept next to this file
+    readonly property string icons: Qt.resolvedUrl("icons/").toString()
     // keys as in wlogout: l lock, e log out, u sleep (suspend), h hibernate,
     // r restart, s shut down. Hibernate only where the system can (a disk
     // sleep state and swap to write memory to).
@@ -120,7 +121,7 @@ Scope {
                                 sourceSize: Qt.size(96, 96)
                                 smooth: true
                                 // rest → light icon on dark / dark icon on light; hover → the opposite
-                                source: "file://" + scope.icons + btn.modelData.icon + "-" +
+                                source: scope.icons + btn.modelData.icon + "-" +
                                         (btn.hov ? (Theme.light ? "rest" : "hover")
                                                  : btn.foc ? (Theme.light ? "hover" : "focus")
                                                            : (Theme.light ? "hover" : "rest")) + ".png"
