@@ -2,26 +2,7 @@
 ---- LAYER RULES --
 -------------------
 
--- SwayNotificationCenter
-hl.layer_rule({
-	match = { namespace = "^swaync-control-center$" },
-	blur = true,
-	ignore_alpha = 0.5,
-})
-
-hl.layer_rule({
-	match = { namespace = "^swaync-notification-window$" },
-	blur = true,
-	ignore_alpha = 0.4,
-})
-
-hl.layer_rule({
-	match = { namespace = "^logout_dialog$" },
-	blur = true,
-	ignore_alpha = 0.7,
-})
-
--- The Quickshell shell: same blur as the tools it replaced
+-- The Quickshell shell
 -- the shell's overlays only fade here: the shell scales their card itself
 -- (Commons/Arrive.qml), so the dimmed backdrop and its blur never zoom
 hl.layer_rule({ match = { namespace = "^orrery-powermenu$" },      blur = true, ignore_alpha = 0.7, animation = "fade" })
@@ -37,13 +18,6 @@ hl.layer_rule({ match = { namespace = "^orrery-bar$" },            no_anim = tru
 hl.layer_rule({ match = { namespace = "^orrery-bar-ghost$" },      no_anim = true })
 hl.layer_rule({ match = { namespace = "^orrery-dock$" },           no_anim = true })   -- the dock slides itself
 hl.layer_rule({ match = { namespace = "^orrery-dock$" },           blur = true, ignore_alpha = 0.5 })
-
--- Rofi
-hl.layer_rule({
-	match = { namespace = "^rofi$" },
-	blur = true,
-	animation = "popin 90%",
-})
 
 --------------------
 ---- WINDOW RULES --

@@ -9,7 +9,7 @@
 name = "Catppuccin Mocha"
 mode = "dark"
 hued = true         # real colours everywhere a stock theme would use them (btop boxes, graphs…)
-bar  = "pill"
+bar  = "minimal"    # preferred bar style: minimal | floating | pill (Legacy); yours in Menu › Appearance › Bar wins
 
 [colors]
 # Backgrounds — darkest to lightest
@@ -80,5 +80,5 @@ conflict  = "#fab387"
 gtk_theme       = "adw-gtk3-dark"
 icon_theme      = "Papirus-Dark-indigo"   # folders closest to the lavender accent
 cursor_theme    = "default"
-qt_style        = "Adwaita-Dark"
+qt_style        = "Fusion"
 nvim_colorscheme = "catppuccin-mocha"

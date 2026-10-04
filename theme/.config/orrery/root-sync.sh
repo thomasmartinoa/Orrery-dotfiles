@@ -70,6 +70,9 @@ if [[ "$bg" =~ ^#[0-9a-fA-F]{6}$ ]]; then
         install -d -m 755 -o root -g root "$dir/policies/managed"
         printf '{ "BrowserThemeColor": "%s" }\n' "$bg" > "$dir/policies/managed/orrery-color.json"
         chmod 644 "$dir/policies/managed/orrery-color.json"
+        # the same policy under the rice's old name (hypr-dotfiles): two files
+        # setting one policy conflict, and the old colour could win
+        rm -f "$dir/policies/managed/hypr-theme-color.json"
     done
 fi
 

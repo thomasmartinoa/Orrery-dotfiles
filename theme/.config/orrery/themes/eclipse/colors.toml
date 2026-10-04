@@ -6,7 +6,7 @@
 
 name = "Eclipse"
 mode = "dark"       # dark | light — drives GTK/Qt/nvim light-dark switches
-bar  = "pill"       # preferred bar style: pill (current look) | minimal (Omarchy-like)
+bar  = "minimal"    # preferred bar style: minimal | floating | pill (Legacy); yours in Menu › Appearance › Bar wins
 
 [colors]
 # Backgrounds — darkest to lightest
@@ -80,5 +80,5 @@ conflict  = "#d19a66"
 gtk_theme       = "adw-gtk3-dark"
 icon_theme      = "Papirus-Dark"
 cursor_theme    = "default"
-qt_style        = "Adwaita-Dark"
+qt_style        = "Fusion"
 nvim_colorscheme = "orrery"

@@ -22,7 +22,7 @@ Singleton {
     // (flat strip flush with the edge, Omarchy-like).
     // A theme sets its preference in colors.toml; `qs ipc call bar style X`
     // overrides it for this session.
-    property string themeBarStyle: "pill"
+    property string themeBarStyle: "minimal"
     // the skin you picked (SUPER+SHIFT+B, the menu) is saved in shell.json as
     // bar.skin so it survives restarts; "" = follow the theme's preference
     readonly property string barOverride: Config.skin
@@ -52,6 +52,9 @@ Singleton {
     // theme can set its own; orrery-border (Config.radius) overrides both, for
     // the shell and Hyprland alike. radiusSm is for small things inside a surface.
     property int themeRadius: 4
+    // the theme's dock: "" (no preference) | bottom | left | right | top | off;
+    // Services/Dock uses it only where shell.json has no choice of yours
+    property string themeDock: ""
     readonly property int radius: Config.radius >= 0 ? Config.radius : themeRadius
     readonly property int radiusSm: Math.round(radius * 0.75)
 
@@ -75,6 +78,7 @@ Singleton {
             if (j.name) root.name = j.name
             if (j.bar === "pill" || j.bar === "floating" || j.bar === "minimal") root.themeBarStyle = j.bar
             if (j.radius !== undefined) root.themeRadius = j.radius
+            root.themeDock = typeof j.dock === "string" ? j.dock : ""
         } catch (e) {
             console.warn("Theme: could not parse " + root.file + ": " + e)
         }

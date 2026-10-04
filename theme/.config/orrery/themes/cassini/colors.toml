@@ -7,7 +7,7 @@
 name = "Cassini"
 mode = "dark"
 hued = true
-bar  = "floating"
+bar  = "minimal"    # preferred bar style: minimal | floating | pill (Legacy); yours in Menu › Appearance › Bar wins
 
 [colors]
 bg0 = "#110b0b"     # deep space — bar / cards
@@ -73,5 +73,5 @@ conflict = "#d69a6c"
 gtk_theme        = "adw-gtk3-dark"
 icon_theme       = "Papirus-Dark-darkcyan"
 cursor_theme     = "default"
-qt_style         = "Adwaita-Dark"
+qt_style         = "Fusion"
 nvim_colorscheme = "aether"

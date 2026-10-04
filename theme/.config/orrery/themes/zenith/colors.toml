@@ -3,7 +3,7 @@
 
 name = "Zenith"
 mode = "light"
-bar  = "pill"
+bar  = "minimal"    # preferred bar style: minimal | floating | pill (Legacy); yours in Menu › Appearance › Bar wins
 
 [colors]
 bg0 = "#f4f4f4"
@@ -72,5 +72,5 @@ conflict  = "#b45309"
 gtk_theme        = "adw-gtk3"
 icon_theme       = "Papirus-Light-grey"   # grey folders, like the rest of the theme
 cursor_theme     = "default"
-qt_style         = "Adwaita"
+qt_style         = "Fusion"
 nvim_colorscheme = "orrery"

@@ -34,7 +34,8 @@ Pill {
     readonly property int strength: network ? Math.round(network.signalStrength * 100) : 100
     readonly property string icon: !dev ? "wifi_off" : wired ? "lan"
                                    : strength > 75 ? "signal_wifi_4_bar" : strength > 50 ? "network_wifi_3_bar" : strength > 25 ? "network_wifi_2_bar" : "network_wifi_1_bar"
-    readonly property string text: !dev ? "offline" : wired ? (dev.address || "wired") : (network ? network.name : "wifi")
+    // wired: a word, not dev.address (the card's MAC, which also ends up in screenshots)
+    readonly property string text: !dev ? "offline" : wired ? "Wired" : (network ? network.name : "wifi")
 
     onClicked: Panels.toggle("network", net)
 

@@ -65,7 +65,7 @@ cd ~/Orrery-dotfiles && ./install.sh
 Reboot, choose **Hyprland** on the login screen, and press **`SUPER` `SPACE`** to find
 everything. To update: `cd ~/Orrery-dotfiles && git pull && ./install.sh`.
 
-The installer installs the packages (offering to build `yay` for the three AUR ones), backs up
+The installer installs the packages (all from Arch's official repos), backs up
 any configs in the way after asking, links the configs with GNU Stow and enables
 NetworkManager, Bluetooth, power profiles and SDDM. It's safe to run again and never deletes
 your files.
@@ -79,7 +79,7 @@ your files.
 | `--stow-only` | Skip installing packages |
 | `--migrate` · `--no-migrate` | Back up blocking files without asking · never move anything |
 | `--skip-root` | Don't touch `/root`, SDDM or sudoers |
-| `--no-aur` | Skip the AUR packages |
+| `--no-reboot` | Don't offer to reboot at the end |
 
 </details>
 
@@ -156,6 +156,7 @@ orrery-theme-preview ember       # a screenshot for the theme picker
 | Boxes instead of icons | `sudo pacman -S ttf-jetbrains-mono-nerd` |
 | The login screen is black | From a TTY (`Ctrl` `Alt` `F3`): `sudo rm /etc/sddm.conf.d/10-wayland.conf`, then reboot |
 | The bar or dock is missing | `SUPER` `CTRL` `R` restarts the shell; `qs log` shows why it stopped |
+| Firefox, VS Code or Chromium isn't themed | Apps installed after the rice get the theme at your next login, or now with `orrery-theme reload`. Restart the app to see it |
 | The Wi-Fi panel is empty | Your network isn't run by NetworkManager; the installer prints how to switch |
 | Headphones work but apps use the laptop mic | `orrery-fix-mic` |
 

@@ -9,6 +9,10 @@ require("modules/windowrules")
 -- Loaded last so they override anything in the modules. pcall: a fresh
 -- install has no current/ yet, and a missing theme must not break Hyprland.
 pcall(dofile, os.getenv("HOME") .. "/.config/orrery/current/hyprland.lua")
+-- ...and your corners and border from orrery-border after the theme's, so
+-- they win over a theme's radius
+local look = io.open(os.getenv("HOME") .. "/.config/hypr/modules/look.local.lua")
+if look then look:close(); pcall(dofile, os.getenv("HOME") .. "/.config/hypr/modules/look.local.lua") end
 
 -----------------
 ---- XWAYLAND ---

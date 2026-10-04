@@ -473,7 +473,7 @@ Item {
             width: 22 * root.s
             height: 22 * root.s
             // "-rest" is the light icon, "-hover" the dark one; pick whichever
-            // contrasts with the pill in this mode (see wlogout.css.tpl).
+            // contrasts with the pill in this mode (as the shell's power menu does).
             source: "icons/" + pb.icon + ((pb.lit !== root.light) ? "-hover" : "-rest") + ".png"
             sourceSize: Qt.size(96, 96)
             smooth: true

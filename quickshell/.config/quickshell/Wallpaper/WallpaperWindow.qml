@@ -48,6 +48,7 @@ Variants {
                     win.front = win.slots.indexOf(this)
                 } else if (status === Image.Error) {
                     console.warn("wallpaper: cannot load " + source)
+                    Wallpaper.recover()
                 }
             }
         }

@@ -18,7 +18,7 @@ Singleton {
             transparent: false,              // floating + minimal skins only
             skin: "",                        // pill (Legacy) | floating | minimal | "" = the theme's choice
             hidden: false,                   // Menu › Quick toggles › Bar
-            battery: false,                  // show the percentage next to the battery glyph
+            battery: true,                   // show the percentage next to the battery glyph
             layout: {
                 // the classic bar, exactly as waybar had it
                 pill: {
@@ -30,7 +30,9 @@ Singleton {
                 minimal: {
                     left:   ["workspaces", "activewindow"],
                     center: ["media", "clock"],
-                    right:  ["tray", "spacer", "sysmon", "netspeed", "spacer", "agents", "spacer", "nightlight", "caffeine", "bluetooth", "audio", "network", "battery", "bell"]
+                    // CPU/memory ("sysmon") and network speed ("netspeed") are a
+                    // Menu › Appearance › Bar › Widgets toggle away
+                    right:  ["tray", "spacer", "agents", "spacer", "nightlight", "caffeine", "bluetooth", "audio", "network", "battery", "bell"]
                 }
             },
             // user modules referenced by id from a layout:
@@ -41,9 +43,9 @@ Singleton {
         },
         // the dock (Services/Dock.qml): pinned = desktop ids, in order
         dock: {
-            enabled: true,
+            enabled: null,                   // true | false | null = the theme's choice (shown)
             mode: "intellihide",             // always | autohide | intellihide
-            position: "bottom",              // bottom | left | right | top
+            position: "",                    // bottom | left | right | top | "" = the theme's choice
             transparent: false,
             iconSize: 40,
             pinned: ["kitty", "thunar", "zen", "firefox", "code"]

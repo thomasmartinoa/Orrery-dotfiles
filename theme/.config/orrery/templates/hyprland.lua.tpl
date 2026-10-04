@@ -8,6 +8,7 @@ hl.config({
 		},
 	},
 	decoration = {
+		rounding = {{ radius }},   -- the theme's corners; orrery-border's choice (look.local.lua) loads after
 		shadow = {
 			color = "{{ mix bg0 bg1 60% | hypr 0.93 }}",
 		},

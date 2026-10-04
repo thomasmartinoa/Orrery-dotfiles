@@ -1,7 +1,0 @@
-@import '../orrery/current/palette.css';
-@import 'themes/black/notifications.css';
-@import 'themes/black/central_control.css';
-
-* {
-    font-family: "JetBrainsMono Nerd Font Propo", monospace;
-}

@@ -24,6 +24,23 @@ plus any key from `[terminal]`, `[git]`, `[apps]`.
 
 ## Make a new theme
 
+**Ask about the layout before you start** (one short message, all three at
+once, with what is on screen now as the default answer; skip any the user
+already answered):
+
+1. **Bar** — keep the bar as it is now (say which style that is:
+   `qs ipc call bar style` / Menu › Appearance › Bar › Style) or give this theme
+   another: Minimal (flat strip), Floating (inset, rounded) or Legacy (pills)?
+2. **Dock** — shown or hidden for this theme, and where (bottom, left, right, top)?
+3. **Corners** — rounded (how much: 4 px is the rice's default, 8–12 px soft) or square?
+
+The answers go into the theme's `colors.toml` (`bar`, `dock`, `radius`, step 2).
+They are the theme's *suggestions*: a choice the user made in the menu
+(`shell.json` `bar.skin`, `dock.enabled`/`dock.position`, `look.radius` from
+`orrery-border`) still wins. If they want this theme to look a certain way
+whatever they picked before, clear those keys (`orrery-border reset`;
+Menu › Appearance › Bar/Dock, or `jq` on `shell.json`) and say so.
+
 A theme from a wallpaper ("extract the palette from this image and make a
 theme"): sample it first, don't eyeball. Cluster the pixels (k-means over a
 192x108 downscale, 8 clusters) and average named regions (the subject, its
@@ -37,7 +54,7 @@ reasoning in the colors.toml header comment.
 1. `cp -r themes/eclipse themes/<id>` (or `zenith` for a light one).
    `<id>` is lowercase-with-dashes; `name` in colors.toml is the display name.
 2. Edit `colors.toml`:
-   - `mode` drives GTK (`adw-gtk3` / `adw-gtk3-dark`), Qt (`Adwaita` / `Adwaita-Dark`),
+   - `mode` drives GTK (`adw-gtk3` / `adw-gtk3-dark`), Qt (Qt's built-in `Fusion` style drawn in the theme's colours; `qt_style` in `[apps]`),
      icons (Papirus-Light / Papirus-Dark), nvim `background`, the shell's `Theme.light`.
    - **The ramp**: `bg0 < bg1 < bg2 < bg3 < bg4` backgrounds (bg0 = bar/cards), then
      `accent_dim < accent_mid < accent_light < accent_bright` and `fg` for text.
@@ -51,7 +68,11 @@ reasoning in the colors.toml header comment.
    - `[git]` keeps real hues. `[apps]` names the GTK/Qt/icon/cursor themes and `nvim_colorscheme`
      (any installed scheme works — LazyVim already ships `catppuccin-*` and `tokyonight-*`;
      `eclipse` is the generated grey one; check `ls ~/.local/share/nvim/lazy/` before naming another).
-   - `bar = "pill"|"floating"|"minimal"` is the skin the theme prefers (pill is shown as "Legacy").
+   - Layout the theme suggests (top-level keys, next to `mode`; all optional):
+     `bar = "minimal"|"floating"|"pill"` (pill is shown as "Legacy"; default minimal),
+     `dock = "bottom"|"left"|"right"|"top"|"off"` (default: shown at the bottom),
+     `radius = 0..24` corner px for windows and the shell (default 4; 0 = square).
+     The four shipped themes all use `bar = "minimal"` and no dock/radius keys.
    - **Hued theme** — the default for any new theme unless the user asks for monochrome:
      `hued = true` at the top, the ramp uses the
      palette's own surface/text steps (Mocha: crust→mantle→base→surface0→surface1, text/subtext/
@@ -200,8 +221,7 @@ cd ~/.config/orrery; for t in eclipse zenith; do
 ```
 The shell reads `hued` and `colors.good/warning/critical` from `colors.json`
 (`Theme.hued`, `Theme.c.*`). Hued today: battery (charging green, ≤30 % yellow, ≤15 % red),
-SysMon > 85 % yellow, critical notification border red; the waybar fallback uses
-`@state-good/-warning/-critical` from `palette.css`. When adding a widget with a state,
+SysMon > 85 % yellow, critical notification border red. When adding a widget with a state,
 follow that pattern — `Theme.hued ? Theme.c.critical : Theme.c.accentDim`.
 
 ## Firefox
@@ -235,7 +255,12 @@ If the app needs a file at a fixed path, add an `install_file` line in
 1. Find what the app reads (a config file, a theme dir, env vars, gsettings) and
    whether it reloads live (signal, IPC, file watch) — check its man page/source.
 2. Write `templates/<file>.tpl` with the tags above; colour it the app's stock way and branch with `{{ hued … }}` so the mono themes stay grey.
-3. Wire `apply()` in `theme/.local/bin/orrery-theme` (install + reload).
+3. Wire `apply()` in `theme/.local/bin/orrery-theme` (install + reload); an editor or
+   browser goes in `apply_apps` (also run at login, for apps installed later). The script
+   runs under `set -e` and the wallpaper and login-screen steps come last: call the new
+   step as `apply_x || true`, and make every `x="$(…)"` that may find nothing end in
+   `|| true` (a missing optional tool once stopped every fresh install before the
+   wallpaper). Test it on a home folder **without** the app, as well as with it.
 4. If it ships with the rice and the app is worth having on a fresh machine, add it to `PKGS_REPO` in install.sh.
 5. Verify dark + light with screenshots (+ a README row if it ships).
 
