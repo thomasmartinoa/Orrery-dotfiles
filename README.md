@@ -156,6 +156,7 @@ orrery-theme-preview ember       # a screenshot for the theme picker
 | Boxes instead of icons | `sudo pacman -S ttf-jetbrains-mono-nerd` |
 | The login screen is black | From a TTY (`Ctrl` `Alt` `F3`): `sudo rm /etc/sddm.conf.d/10-wayland.conf`, then reboot |
 | The bar or dock is missing | `SUPER` `CTRL` `R` restarts the shell; `qs log` shows why it stopped |
+| Firefox, VS Code or Chromium isn't themed | Apps installed after the rice get the theme at your next login, or now with `orrery-theme reload`. Restart the app to see it |
 | The Wi-Fi panel is empty | Your network isn't run by NetworkManager; the installer prints how to switch |
 | Headphones work but apps use the laptop mic | `orrery-fix-mic` |
 

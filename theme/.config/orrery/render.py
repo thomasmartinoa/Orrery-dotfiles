@@ -15,7 +15,7 @@ Template syntax — one tag per colour, Omarchy-style:
     {{ bg0 | rgb }}              10, 10, 10
     {{ bg0 | kde }}              10,10,10
     {{ bg0 | rgba 0.6 }}         rgba(10, 10, 10, 0.6)
-    {{ bg0 | hex8 0.6 }}         #0a0a0a99        (rofi)
+    {{ bg0 | hex8 0.6 }}         #0a0a0a99        (translucent)
     {{ bg0 | argb }}             #ff0a0a0a        (qt6ct)
     {{ bg0 | argb 0.1 }}         #190a0a0a
     {{ bg0 | hypr }}             rgba(0a0a0aff)   (hyprland)
@@ -69,7 +69,10 @@ def alpha_byte(a):
 class Renderer:
     def __init__(self, theme):
         self.vars = {}
-        for k in ("name", "mode", "bar"):
+        # layout a theme may suggest; the user's own choice (menu, shell.json,
+        # orrery-border) wins over it
+        self.vars.update({"bar": "minimal", "radius": "4", "dock": ""})
+        for k in ("name", "mode", "bar", "radius", "dock"):
             if k in theme:
                 self.vars[k] = str(theme[k])
         self.hued = bool(theme.get("hued", False))

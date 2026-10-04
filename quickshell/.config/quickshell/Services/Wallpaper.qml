@@ -12,6 +12,15 @@ Singleton {
     property string path: link
     property int generation: 0        // bumps on every set, even to the same path
 
+    // the link can be missing (a theme step that never finished): ask
+    // orrery-wall to pick one of the theme's backgrounds, once; it calls set()
+    property bool recovering: false
+    function recover() {
+        if (recovering) return
+        recovering = true
+        Quickshell.execDetached([Quickshell.env("HOME") + "/.local/bin/orrery-wall", "ensure"])
+    }
+
     function set(p) {
         path = p && p.length > 0 ? p : link
         generation++

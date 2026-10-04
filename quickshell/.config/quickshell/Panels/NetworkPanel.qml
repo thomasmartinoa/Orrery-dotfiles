@@ -70,7 +70,7 @@ Panel {
 
     PanelRow {
         visible: p.wired && p.wired.connected
-        icon: "lan"; title: "Wired"; subtitle: p.wired ? (p.wired.address || "") : ""; active: true; trailing: "connected"
+        icon: "lan"; title: "Wired"; subtitle: p.wired ? (p.wired.name || "") : ""; active: true; trailing: "connected"
     }
 
     EmptyState {

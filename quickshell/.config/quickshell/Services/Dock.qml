@@ -13,11 +13,14 @@ Singleton {
     id: root
 
     readonly property var cfg: Config.data.dock || Config.defaults.dock
-    readonly property bool enabled: cfg.enabled !== false
+    // shown/position: your choice (Menu › Appearance › Dock) when you made one,
+    // else the theme's (colors.toml dock = "left" | "off" | …), else bottom
+    readonly property bool enabled: cfg.enabled === true || cfg.enabled === false ? cfg.enabled : Theme.themeDock !== "off"
     // always · autohide (show when the cursor reaches the edge) ·
     // intellihide (hide only while a window would sit under it)
     readonly property string mode: ["always", "autohide", "intellihide"].indexOf(cfg.mode) !== -1 ? cfg.mode : "intellihide"
-    readonly property string position: ["bottom", "left", "right", "top"].indexOf(cfg.position) !== -1 ? cfg.position : "bottom"
+    readonly property string position: ["bottom", "left", "right", "top"].indexOf(cfg.position) !== -1 ? cfg.position
+        : ["bottom", "left", "right", "top"].indexOf(Theme.themeDock) !== -1 ? Theme.themeDock : "bottom"
     readonly property bool vertical: position === "left" || position === "right"
     readonly property bool transparent: !!cfg.transparent
     readonly property int iconSize: (cfg.iconSize >= 24 && cfg.iconSize <= 72) ? cfg.iconSize : 40

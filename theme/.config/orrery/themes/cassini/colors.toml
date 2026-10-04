@@ -7,7 +7,7 @@
 name = "Cassini"
 mode = "dark"
 hued = true
-bar  = "floating"
+bar  = "minimal"    # preferred bar style: minimal | floating | pill (Legacy); yours in Menu › Appearance › Bar wins
 
 [colors]
 bg0 = "#110b0b"     # deep space — bar / cards

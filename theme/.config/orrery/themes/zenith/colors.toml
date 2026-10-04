@@ -3,7 +3,7 @@
 
 name = "Zenith"
 mode = "light"
-bar  = "pill"
+bar  = "minimal"    # preferred bar style: minimal | floating | pill (Legacy); yours in Menu › Appearance › Bar wins
 
 [colors]
 bg0 = "#f4f4f4"

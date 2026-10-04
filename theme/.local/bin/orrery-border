@@ -4,7 +4,7 @@
 #   orrery-border                 print the current corners and border
 #   orrery-border radius <px>     corner radius, 0 (square) – 24; windows and the shell
 #   orrery-border width <px>      window border thickness, 0 (none) – 8
-#   orrery-border reset           back to the rice's defaults (4 px corners, 1 px border)
+#   orrery-border reset           back to the theme's corners (4 px unless it sets its own) and a 1 px border
 #
 # Applies live and survives reloads, restarts and theme switches:
 #   shell     ~/.config/orrery/shell.json  look.radius  (watched; every surface
@@ -48,7 +48,7 @@ case "${1:-}" in
     "")
         printf 'corners: %s px%s\nborder:  %s px%s\n' \
             "${r:-$RADIUS}" "$([[ -z $r ]] && echo ' (default)')" "${b:-$BORDER}" "$([[ -z $b ]] && echo ' (default)')" ;;
-    radius) num "${2:-}" 24; v=$2; [[ $v == "$RADIUS" ]] && v=""; apply "$v" "$b" ;;
+    radius) num "${2:-}" 24; apply "$2" "$b" ;;   # any choice is kept, so it wins over a theme's radius
     width)  num "${2:-}" 8;  v=$2; [[ $v == "$BORDER" ]] && v=""; apply "$r" "$v" ;;
     reset)  apply "" "" ;;
     -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//' ;;

@@ -8,6 +8,7 @@
 #   orrery-theme current        print the current theme name
 #   orrery-theme render <name>  render only, into a temp dir (for testing)
 #   orrery-theme reload         re-render the current theme and re-apply
+#   orrery-theme apps           re-theme VS Code, Firefox and Chromium only (at login)
 #   orrery-theme json           every theme as JSON (name, mode, colours,
 #                             backgrounds) — what the shell's picker reads
 #
@@ -89,11 +90,11 @@ install_file() {
 # in settings.json. VS Code watches the active theme file, so re-rendering
 # recolours it live; the light/dark base (uiTheme) is read on the next start.
 apply_vscode() {
-    local ext_base="$1" settings="$2" ext="$1/orrery-theme" ui
-    # Only where the editor exists; VS Code creates ~/.vscode on first launch,
+    local ext_base="$1" settings="$2" bin="$3" ext="$1/orrery-theme" ui
+    # Only where the editor exists; VS Code creates its dir on first launch,
     # but if the binary is here we can pre-seed it so the first launch is themed.
     if [[ ! -d "$ext_base" ]]; then
-        have code || return 0
+        have "$bin" || return 0
         mkdir -p "$ext_base"
     fi
     have jq || return 0
@@ -159,6 +160,39 @@ CONF
     fi
     # keep the terminal's translucent background rather than a solid box
     sed -i 's/^theme_background *=.*/theme_background = False/' "$conf"
+}
+
+# The editors and browsers. Run by every `set`, and at each login
+# (`orrery-theme apps`, autostart.lua): an app installed or first opened after
+# the theme was set gets it then, without a theme switch.
+apply_apps() {
+    # VS Code (Microsoft build), Code - OSS (Arch's "code") and VSCodium
+    apply_vscode "$HOME/.vscode/extensions"     "$HOME/.config/Code/User/settings.json"       code     || true
+    apply_vscode "$HOME/.vscode-oss/extensions" "$HOME/.config/Code - OSS/User/settings.json" code-oss || true
+    [[ -d "$HOME/.config/VSCodium" ]] || have codium && \
+        apply_vscode "$HOME/.vscode-oss/extensions" "$HOME/.config/VSCodium/User/settings.json" codium || true
+    seed_firefox_profile || true
+    apply_firefox || true
+}
+
+# root/SDDM/Chromium-policy sync (see apply); also at login, for a browser
+# installed since the last theme switch
+root_sync() {
+    [[ -x /usr/local/bin/orrery-root-sync ]] || return 0
+    sudo -n /usr/local/bin/orrery-root-sync >/dev/null 2>&1 \
+        || printf 'orrery-theme: root/sddm sync skipped (run ./install.sh to set up the sudo rule)\n' >&2
+}
+
+# A Firefox that was never opened has no profile, so there is nothing to theme
+# and its first window would be stock. A headless run creates the profile
+# Firefox will use (bound to this install in installs.ini) in about a second.
+seed_firefox_profile() {
+    have firefox || return 0
+    [[ -f "$HOME/.config/mozilla/firefox/profiles.ini" || -f "$HOME/.mozilla/firefox/profiles.ini" ]] && return 0
+    pgrep -x firefox >/dev/null 2>&1 && return 0
+    local shot; shot="$(mktemp --suffix=.png)"
+    timeout 30 firefox --headless --screenshot "$shot" about:blank >/dev/null 2>&1 || true
+    rm -f "$shot"
 }
 
 apply_firefox() {
@@ -237,10 +271,11 @@ ensure_folder_icons() {
 # the patch: run "spicetify backup apply" again.
 apply_spotify() {
     local sp dir
-    sp="$(command -v spicetify || { [[ -x $HOME/.spicetify/spicetify ]] && echo "$HOME/.spicetify/spicetify"; })"
+    # no Spicetify is the usual case: an empty answer, never an error (set -e)
+    sp="$(command -v spicetify || { [[ -x $HOME/.spicetify/spicetify ]] && echo "$HOME/.spicetify/spicetify"; } || true)"
     [[ -n $sp ]] || return 0
     [[ -n "$("$sp" config spotify_path 2>/dev/null)" ]] || return 0
-    dir="$("$sp" path userdata 2>/dev/null)/Themes/orrery"
+    dir="$("$sp" path userdata 2>/dev/null || true)/Themes/orrery"
     [[ $dir == /* ]] || return 0
     mkdir -p "$dir"
     install_file "$CURRENT_DIR/spicetify-color.ini" "$dir/color.ini"
@@ -267,7 +302,7 @@ apply() {
     mode="$(theme_mode "$CURRENT_DIR/theme")"
     gtk_theme="$(sed -n 's/^gtk-theme-name=\(.*\)/\1/p' "$CURRENT_DIR/gtk3-settings.ini")"
     icon_theme="$(sed -n 's/^gtk-icon-theme-name=\(.*\)/\1/p' "$CURRENT_DIR/gtk3-settings.ini")"
-    ensure_folder_icons "$icon_theme"
+    ensure_folder_icons "$icon_theme" || true
 
     # Files that must live at a fixed path the app owns.
     install_file "$CURRENT_DIR/gtk3-settings.ini" "$HOME/.config/gtk-3.0/settings.ini"
@@ -299,7 +334,9 @@ apply() {
         gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" 2>/dev/null || true
     fi
 
-    apply_spotify
+    # optional apps: one that fails must never stop the wallpaper and login-screen
+    # steps below (set -e is off inside a function called from ||)
+    apply_spotify || true
 
     # Running apps: reload in place where the app supports it.
     have hyprctl       && hyprctl reload >/dev/null 2>&1 || true
@@ -307,15 +344,8 @@ apply() {
     pkill -SIGUSR2 -x btop          2>/dev/null || true   # btop re-reads config + theme
     # GTK3 reads its theme once at startup and does not follow gsettings on
     # Wayland (tested: neither directly nor through the settings portal), so
-    # every GTK3 daemon we own is restarted: waybar + swaync together (the
-    # bar's bell module is a swaync-client subscription) and the polkit agent.
-    # The Quickshell bar recolours itself (it watches colors.json); only the
-    # GTK3 pieces need a restart. With the classic waybar bar, both.
-    if pgrep -x qs >/dev/null 2>&1; then
-        : # the shell owns bar, notifications and wallpaper and recolours itself
-    elif [[ -x "$HOME/.config/hypr/scripts/shell.sh" ]]; then
-        "$HOME/.config/hypr/scripts/shell.sh" restart >/dev/null 2>&1 || true
-    fi
+    # the one GTK3 daemon we own, the polkit agent, is restarted. The shell
+    # recolours itself (it watches colors.json).
     if pgrep -x polkit-gnome-au >/dev/null 2>&1; then
         pkill -x polkit-gnome-au 2>/dev/null || true
         setsid -f /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1
@@ -326,8 +356,7 @@ apply() {
         [[ -S "$sock" ]] || continue
         nvim --server "$sock" --remote-send '<Cmd>lua pcall(function() require("config.orrery").apply() end)<CR>' >/dev/null 2>&1 || true
     done
-    apply_vscode "$HOME/.vscode/extensions" "$HOME/.config/Code/User/settings.json"
-    apply_firefox
+    apply_apps
     # Chromium: the Aether/Omarchy way — Chromium's own flags set the built-in
     # theme colour and colour scheme (persisted in the profile; a running
     # instance picks it up, otherwise it applies on the next start).
@@ -350,10 +379,7 @@ apply() {
     # root's GTK config (pkexec apps like grub-customizer) and the SDDM theme
     # need root. install.sh installs the helper + a sudoers rule for exactly
     # it; `sudo -n` never prompts, so this is silent where that is missing.
-    if [[ -x /usr/local/bin/orrery-root-sync ]]; then
-        sudo -n /usr/local/bin/orrery-root-sync >/dev/null 2>&1 \
-            || printf 'orrery-theme: root/sddm sync skipped (run ./install.sh to set up the sudo rule)\n' >&2
-    fi
+    root_sync
 }
 
 # ---------------------------------------------------------------------------
@@ -417,7 +443,7 @@ for d in sorted(os.listdir(root)):
     c = t.get("colors", {})
     # a real screenshot of the theme (orrery-theme-preview), shown by the picker
     pv = next((os.path.join(root, d, "preview." + e) for e in ("jpg", "png") if os.path.isfile(os.path.join(root, d, "preview." + e))), "")
-    out.append({"id": d, "name": t.get("name", d), "mode": t.get("mode", "dark"), "bar": t.get("bar", "pill"),
+    out.append({"id": d, "name": t.get("name", d), "mode": t.get("mode", "dark"), "bar": t.get("bar", "minimal"),
                 "current": d == current, "backgrounds": imgs, "preview": os.path.realpath(pv) if pv else "",
                 # changes when the preview is retaken, so the picker can cache the image
                 "previewStamp": int(os.path.getmtime(pv)) if pv else 0,
@@ -433,6 +459,7 @@ case "${1:-}" in
     toggle)  cmd_toggle ;;
     list)    list_themes ;;
     current) current_name ;;
+    apps)    [[ -f "$CURRENT_DIR/colors.json" ]] || exit 0; apply_apps; root_sync ;;
     reload)  cur="$(current_name)"; [[ -n "$cur" ]] || die "no current theme"; cmd_set "$cur" ;;
     render)  src="$(theme_path "${2:-}")"; out="$(mktemp -d)"; render_into "$src" "$out"; printf '%s\n' "$out" ;;
     *)       sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;

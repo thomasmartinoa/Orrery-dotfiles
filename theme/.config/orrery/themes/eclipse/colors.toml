@@ -6,7 +6,7 @@
 
 name = "Eclipse"
 mode = "dark"       # dark | light — drives GTK/Qt/nvim light-dark switches
-bar  = "pill"       # preferred bar style: pill (current look) | minimal (Omarchy-like)
+bar  = "minimal"    # preferred bar style: minimal | floating | pill (Legacy); yours in Menu › Appearance › Bar wins
 
 [colors]
 # Backgrounds — darkest to lightest

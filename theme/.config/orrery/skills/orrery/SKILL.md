@@ -21,8 +21,9 @@ machine**. The user installed it and now wants to make themes, customise
 the bar and shell, change keybindings or fix something. Everything lives in
 the git clone `~/Orrery-dotfiles` and is *symlinked* into `~` with GNU stow
 (one package per app: `hyprland quickshell theme kittyterminal alacritty
-nvim zsh starship gtk sddm`; `waybar rofi swaync wlogout` are legacy
-fallbacks kept for when the shell is not running). **Edit files in the repo**
+nvim zsh starship gtk`, plus the `sddm` login theme install.sh copies; the
+Quickshell shell is the whole desktop: there is no Waybar/Rofi/swaync/wlogout
+any more). **Edit files in the repo**
 — `~/.config/hypr` *is* `~/Orrery-dotfiles/hyprland/.config/hypr`.
 
 **Changes stay on this machine.** Do not commit, push or open a PR unless
@@ -80,7 +81,7 @@ Commands you will use (all `--help`/header-documented — read the script if uns
 
 | Command | Does |
 |---|---|
-| `orrery-theme list / current / set <id> / toggle / next / reload / json` | apply a theme everywhere (renders templates → current/, installs GTK/Qt/KDE/btop files, reloads kitty/hyprland/nvim/shell, root+SDDM sync) |
+| `orrery-theme list / current / set <id> / toggle / next / reload / apps / json` | apply a theme everywhere (renders templates → current/, installs GTK/Qt/KDE/btop files, reloads kitty/hyprland/nvim/shell, root+SDDM sync) |
 | `orrery-wall set <path> / next / current / ensure` | wallpaper (shell layer; also lock + SDDM) |
 | `orrery-theme-preview [<id>]` | real screenshot for the theme picker → `themes/<id>/preview.jpg`; restores everything after |
 | `orrery-theme-menu theme|wallpaper` | open the carousel picker |
@@ -166,8 +167,11 @@ guards against stow "folding" `~/.local`, Qt env, theme apply, SDDM theme and
 the root-sync sudoers rule. It is idempotent; `--dry-run` exists. When you
 add anything a fresh user needs, add it there and bump `STEP_TOTAL` if you
 add a step. Test with a fake HOME only if you can fully stub the tools
-(`hyprctl`, `qs`, `awww`, `gsettings`) — an earlier run leaked into the live
-session.
+(`hyprctl`, `qs`, `chromium`, `gsettings`, `sudo`, and `pgrep` returning 1) —
+an earlier run leaked into the live session. Don't stub optional apps the user
+may not have (spicetify, code): a fresh machine lacks them, and that is the
+path to test. The real test is a VM: `install.sh --stow-only --skip-root`
+over SSH covers everything but the sudo steps.
 
 ## 6. Finish
 

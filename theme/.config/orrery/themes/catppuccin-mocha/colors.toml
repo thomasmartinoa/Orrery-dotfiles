@@ -9,7 +9,7 @@
 name = "Catppuccin Mocha"
 mode = "dark"
 hued = true         # real colours everywhere a stock theme would use them (btop boxes, graphs…)
-bar  = "pill"
+bar  = "minimal"    # preferred bar style: minimal | floating | pill (Legacy); yours in Menu › Appearance › Bar wins
 
 [colors]
 # Backgrounds — darkest to lightest
