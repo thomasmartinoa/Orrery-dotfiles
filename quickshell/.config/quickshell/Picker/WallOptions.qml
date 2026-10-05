@@ -39,13 +39,15 @@ Rectangle {
             Toggle {
                 anchors.verticalCenter: parent.verticalCenter
                 on: WallTheme.on
-                onToggled: (want) => want ? WallTheme.apply(bar.path) : WallTheme.turnOff()
+                onToggled: (want) => want ? WallTheme.turnOn(bar.path) : WallTheme.turnOff()
             }
             Column {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 1
                 Label { text: "Colours from wallpaper"; font.pixelSize: Theme.fs(12); color: Theme.c.fg }
-                Label { text: WallTheme.on ? "The desktop follows the picture" : "Let the picture colour the desktop"
+                Label { text: !WallTheme.on ? (WallTheme.picture ? "Let your pictures colour the desktop" : "Add a picture to start")
+                              : bar.pv && WallTheme.mode === "auto" ? "Auto picked " + (bar.pv.mode === "light" ? "light" : "dark") + " for this picture"
+                              : "The desktop follows the picture"
                         font.pixelSize: Theme.fs(10); color: Theme.c.accentMid }
             }
         }
@@ -66,11 +68,11 @@ Rectangle {
 
         Segmented {
             anchors.verticalCenter: parent.verticalCenter
-            width: Theme.fs(12) * 16; height: 30
+            width: Theme.fs(12) * 14; height: 30
             current: WallTheme.mode
             // Auto says what it chose for this picture
-            options: [{ label: bar.pv && WallTheme.mode === "auto" ? "Auto · " + (bar.pv.mode === "light" ? "light" : "dark") : "Auto", value: "auto" }, { label: "Dark", value: "dark" }, { label: "Light", value: "light" }]
-            onPicked: (v) => { WallTheme.setMode(v); bar.changed() }
+            options: [{ label: "Auto", value: "auto" }, { label: "Dark", value: "dark" }, { label: "Light", value: "light" }]
+            onPicked: (v) => WallTheme.setMode(v)
         }
         Segmented {
             anchors.verticalCenter: parent.verticalCenter
@@ -78,7 +80,7 @@ Rectangle {
             current: bar.pv && bar.pv.mono ? "" : WallTheme.style
             opacity: bar.pv && bar.pv.mono ? 0.4 : 1
             options: [{ label: "Soft", value: "soft" }, { label: "Faithful", value: "faithful" }, { label: "Vivid", value: "vivid" }]
-            onPicked: (v) => { WallTheme.setStyle(v); bar.changed() }
+            onPicked: (v) => WallTheme.setStyle(v)
         }
 
         // the picture's main colours: which one leads

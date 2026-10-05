@@ -3,6 +3,8 @@
 
     orrery-wall-theme apply [IMAGE] [--mode auto|dark|light] [--style soft|faithful|vivid] [--accent N]
                                   colour everything from IMAGE (default: the current wallpaper)
+    orrery-wall-theme on          turn it on with your last picture (or your folder's first)
+    orrery-wall-theme config [--mode …] [--style …]   remember settings (re-applies when on)
     orrery-wall-theme off         back to the theme you used before
     orrery-wall-theme toggle      on (from the current wallpaper) or off
     orrery-wall-theme use IMAGE   set IMAGE as the wallpaper, copied into your folder
@@ -45,7 +47,9 @@ CACHE = Path(os.environ.get("XDG_CACHE_HOME", HOME / ".cache")) / "orrery/wallpa
 BIN = Path(__file__).resolve().parent
 IMAGES = (".png", ".jpg", ".jpeg", ".webp")
 STYLES = {"soft": "scheme-tonal-spot", "faithful": "scheme-content", "vivid": "scheme-vibrant"}
-DEFAULTS = {"mode": "auto", "style": "soft", "accent": 0, "previous": ""}
+# mode and style are your taste (one for every picture); the accent depends
+# on the picture, so it's remembered per picture; "picture" is the last one used
+DEFAULTS = {"mode": "auto", "style": "soft", "accent": 0, "previous": "", "picture": "", "accents": {}}
 # the hues every theme has (terminal, git, warnings), pulled towards the picture's colour
 HUES = {"red": "#e06c75", "orange": "#e5995c", "yellow": "#e5c07b", "green": "#98c379",
         "aqua": "#56b6c2", "blue": "#61afef", "purple": "#c678dd"}
@@ -335,28 +339,49 @@ def write_theme(img, pal):
 
 # ---------------------------------------------------------------- commands --
 def options(args, st):
-    o = {"mode": st["mode"], "style": st["style"], "accent": st["accent"]}
-    rest, i = [], 0
+    """Settings from the command line over the remembered ones. The accent is
+    left out unless given: it belongs to the picture (see accent_for)."""
+    o = {"mode": st["mode"], "style": st["style"]}
+    rest, i, given = [], 0, set()
     while i < len(args):
         a = args[i]
         if a in ("--mode", "--style", "--accent") and i + 1 < len(args):
-            o[a[2:]] = args[i + 1]; i += 2; continue
+            o[a[2:]] = args[i + 1]; given.add(a[2:]); i += 2; continue
         rest.append(a); i += 1
     if o["mode"] not in ("auto", "dark", "light"):
         die("--mode is auto, dark or light")
     if o["style"] not in STYLES:
         die("--style is soft, faithful or vivid")
-    try:
-        o["accent"] = int(o["accent"])
-    except ValueError:
-        die("--accent is a number (0 = the picture's main colour)")
-    return o, rest
+    if "accent" in o:
+        try:
+            o["accent"] = int(o["accent"])
+        except ValueError:
+            die("--accent is a number (0 = the picture's main colour)")
+    return o, rest, given
 
 
-def tell_shell(fn):
+def accent_for(st, img):
+    return int(st.get("accents", {}).get(img, 0))
+
+
+def own_pictures():
+    return images_in(folder())
+
+
+def default_picture(st):
+    """What "on" uses: the last picture you used, else your folder's first.
+    Never a shipped theme's wallpaper unless you picked it yourself."""
+    last = st.get("picture", "")
+    if last and Path(last).is_file():
+        return last
+    own = own_pictures()
+    return own[0] if own else ""
+
+
+def tell_shell(fn, *args):
     """The shell's "Applying colours…" notice (nothing if it isn't running)."""
     if shutil.which("qs"):
-        subprocess.run(["qs", "ipc", "call", "walltheme", fn], capture_output=True, check=False)
+        subprocess.run(["qs", "ipc", "call", "walltheme", fn, *args], capture_output=True, check=False)
 
 
 def cmd_apply(args):
@@ -369,29 +394,47 @@ def cmd_apply(args):
 
 def apply(args):
     st = load_state()
-    new_image = bool([a for a in args if not a.startswith("--")])
-    o, rest = options(args, st)
-    img = rest[0] if rest else current_wallpaper()
+    o, rest, given = options(args, st)
+    img = rest[0] if rest else default_picture(st)
     if not img:
-        die("no wallpaper set: give an image")
+        # nothing of yours yet: ask for one (the shell's file chooser)
+        tell_shell("add")
+        die("no pictures in " + str(folder()) + " yet: add one (Menu > Appearance > Add a wallpaper)")
     img = import_image(img)
-    # a new picture starts from its own main colour, unless --accent was given
-    if new_image and "--accent" not in args and img != current_wallpaper():
-        o["accent"] = 0
-    pal = palette(img, o["mode"], o["style"], o["accent"])
+    accent = o.get("accent", accent_for(st, img))
+    pal = palette(img, o["mode"], o["style"], accent)
     write_theme(img, pal)
     cur = current_theme()
     if cur and cur != "wallpaper":
         st["previous"] = cur
-    st.update(o)
+    st["mode"], st["style"], st["picture"] = o["mode"], o["style"], img
+    st.setdefault("accents", {})[img] = pal["accent"]
+    st["accent"] = pal["accent"]
     save_state(st)
     # the wallpaper this theme will pick (orrery-wall's per-theme memory)
     (HOME / ".local/state/orrery").mkdir(parents=True, exist_ok=True)
     (HOME / ".local/state/orrery/background.wallpaper").write_text(img + "\n")
-    env = {**os.environ, "ORRERY_WALL_THEME": "1"}   # orrery-wall: don't call back into us
+    # ORRERY_WALL_THEME: orrery-wall doesn't call back into us, and orrery-theme
+    # sends no "Theme: …" notification (the shell's notice says it instead)
+    env = {**os.environ, "ORRERY_WALL_THEME": "1"}
     subprocess.run([str(BIN / "orrery-theme"), "set", "wallpaper"], env=env, check=False, stdout=subprocess.DEVNULL)
     subprocess.run([str(BIN / "orrery-wall"), "set", img], env=env, check=False)
     print(json.dumps({"image": img, **{k: pal[k] for k in ("mode", "mono", "style", "accent", "candidates")}}))
+
+
+def cmd_config(args):
+    """Remember mode/style; when it's on, re-colour the picture on screen."""
+    st = load_state()
+    o, _, given = options(args, st)
+    st["mode"], st["style"] = o["mode"], o["style"]
+    save_state(st)
+    if current_theme() == "wallpaper":
+        cmd_apply([])
+    print(json.dumps({k: st[k] for k in ("mode", "style")}))
+
+
+def cmd_on(_):
+    cmd_apply([])
 
 
 def cmd_off(_):
@@ -406,7 +449,7 @@ def cmd_toggle(_):
     if current_theme() == "wallpaper":
         cmd_off([])
     else:
-        cmd_apply([])
+        cmd_on([])
 
 
 def cmd_use(args):
@@ -421,11 +464,11 @@ def cmd_use(args):
 
 def cmd_preview(args):
     st = load_state()
-    o, rest = options(args, st)
+    o, rest, _ = options(args, st)
     if not rest:
         die("preview IMAGE")
     img = str(Path(rest[0]).expanduser().resolve())
-    pal = palette(img, o["mode"], o["style"], o["accent"])
+    pal = palette(img, o["mode"], o["style"], o.get("accent", accent_for(st, img)))
     keys = ("bg0", "bg1", "bg2", "bg3", "bg4", "fg", "accent_bright", "accent_light", "accent_mid", "accent_dim",
             "hover", "red", "orange", "yellow", "green", "aqua", "blue", "purple")
     print(json.dumps({**{k: pal[k] for k in ("mode", "mono", "style", "accent", "candidates")},
@@ -435,7 +478,8 @@ def cmd_preview(args):
 def cmd_status(_):
     st = load_state()
     print(json.dumps({"on": current_theme() == "wallpaper", "folder": str(folder()),
-                      **{k: st[k] for k in ("mode", "style", "accent", "previous")}}))
+                      **{k: st[k] for k in ("mode", "style", "accent", "previous", "picture", "accents")},
+                      "default": default_picture(st)}))
 
 
 def main():
@@ -444,6 +488,10 @@ def main():
         cmd_apply(args)
     elif cmd == "off":
         cmd_off(args)
+    elif cmd == "on":
+        cmd_on(args)
+    elif cmd == "config":
+        cmd_config(args)
     elif cmd == "toggle":
         cmd_toggle(args)
     elif cmd == "use":
