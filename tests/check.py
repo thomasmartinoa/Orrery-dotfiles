@@ -238,7 +238,7 @@ for pkg in bash_array("install.sh", "PACKAGES") or []:
         fail("install", f'stow package "{pkg}" is listed in install.sh but not in the repo')
 
 # ---------------------------------------------------------------- privacy --
-personal = re.compile(r"/home/(?!<|\$|user\b|you\b)[a-z_][a-z0-9_-]*/")
+personal = re.compile(r"/home/(?!<|\$|user\b|you\b|tester\b)[a-z_][a-z0-9_-]*/")   # tester: the CI user
 for p in FILES:
     if p.suffix in (".md",) or not is_text(p):
         continue
