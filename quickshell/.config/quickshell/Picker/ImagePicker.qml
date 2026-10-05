@@ -253,7 +253,7 @@ Variants {
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: 10
                 height: 26
-                Label { anchors.verticalCenter: parent.verticalCenter; text: caption.it ? caption.it.name : ""
+                Label { anchors.verticalCenter: parent.verticalCenter; text: (caption.it && caption.it.name) || ""
                         font.pixelSize: Theme.fs(15); font.weight: Font.DemiBold; color: Theme.c.fg }
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
