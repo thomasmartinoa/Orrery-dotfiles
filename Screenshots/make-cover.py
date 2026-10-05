@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The README cover and the GitHub social preview, from one design: the
-wordmark with orbits, the tagline and the four shipped themes' real previews
+wordmark with orbits and the four shipped themes' real previews
 (themes/<id>/preview.jpg, from orrery-theme-preview).
 
     Screenshots/cover.png    README header, rounded card
@@ -17,7 +17,6 @@ OUT = os.path.dirname(os.path.abspath(__file__))
 THEMES = os.path.join(OUT, "..", "theme", ".config", "orrery", "themes")
 BG, BG2 = "#09090c", "#14141a"
 FG, MUTED = "#ededf0", "#9a9aa4"
-TAGLINE = "a Hyprland desktop where everything orbits one palette"
 TILT = -9
 
 # one line under each name in the theme tour
@@ -76,7 +75,6 @@ def build(name, L, tmp):
   <filter id="feather"><feGaussianBlur stdDeviation="14"/></filter>
   <mask id="quiet" maskUnits="userSpaceOnUse" x="0" y="0" width="{W}" height="{H}">
     <rect width="{W}" height="{H}" fill="#fff"/>
-    <rect x="{cx - 720 * k}" y="{cy + 100 * k}" width="{1440 * k}" height="{76 * k}" rx="{38 * k}" fill="#000" filter="url(#feather)"/>
   </mask>
   <clipPath id="card"><rect width="{W}" height="{H}" rx="{L['radius']}"/></clipPath>
 </defs>''')
@@ -92,7 +90,7 @@ def build(name, L, tmp):
         r = rnd.choice([0.8, 0.8, 1.0, 1.2, 1.6])
         add(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" fill="#ffffff" opacity="{rnd.uniform(0.12, 0.5):.2f}"/>')
 
-    # a soft light where the sun would be, then the orbits (kept off the tagline)
+    # a soft light where the sun would be, then the orbits
     add(f'<ellipse cx="{cx}" cy="{cy}" rx="{700 * k}" ry="{260 * k}" fill="url(#sun)"/>')
     add('<g mask="url(#quiet)">')
     for rx, ry, op in orbits:
@@ -100,11 +98,9 @@ def build(name, L, tmp):
             f'stroke-opacity="{op}" stroke-width="{1.6 * k:.2f}" transform="rotate({TILT} {cx} {cy})"/>')
     add('</g>')
 
-    # the wordmark and tagline
+    # the wordmark
     add(f'<text x="{cx}" y="{cy + 64 * k}" text-anchor="middle" font-family="Inter Display" font-weight="200" '
         f'font-size="{184 * k}" letter-spacing="{58 * k}" fill="{FG}">ORRERY</text>')
-    add(f'<text x="{cx}" y="{cy + 150 * k}" text-anchor="middle" font-family="Inter" font-weight="300" '
-        f'font-size="{40 * k}" letter-spacing="1.5" fill="{MUTED}">{TAGLINE}</text>')
 
     # planets: one per theme, drawn over the orbits and the text
     for tid, label, col, r, oi, deg in SHOTS:
