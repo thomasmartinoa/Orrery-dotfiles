@@ -14,7 +14,9 @@ Thanks for helping. Here's where things go:
 
 1. Fork, then work on a branch off `main`.
 2. Keep each pull request to one change, with a commit message that says *why*.
-3. Test it on your machine. `./install.sh --dry-run` must run clean, and anything visual
+3. Run `tests/check.py`: it checks scripts, QML, Lua, the menu, icons and every theme in a
+   few seconds. GitHub runs it again on your pull request, along with a full install,
+   uninstall and reinstall on a fresh Arch system. Then test on your machine: anything visual
    should look right in both a dark theme (Eclipse) and the light one (Zenith).
 4. Don't commit anything personal: your name, home paths, monitor names, or wallpapers you
    don't have the rights to share.
