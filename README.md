@@ -145,7 +145,7 @@ The full list is under Menu › Learn and in
 
 - **Ask your coding agent.** The installer links the `/orrery` skill into Claude Code, Codex,
   OpenCode and Gemini CLI: *"make a warm dark theme called ember from ~/Pictures/forest.jpg"*.
-- **Bar, dock, fonts, corners and borders:** Menu › Appearance.
+- **Bar, dock, fonts, corners, borders, blur and transparency:** Menu › Appearance.
 - **Your own keybinds** go in `~/.config/hypr/modules/binds.local.lua`. Updates never touch it.
 
 <details>

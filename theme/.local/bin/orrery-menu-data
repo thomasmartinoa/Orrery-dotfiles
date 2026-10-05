@@ -52,6 +52,11 @@ def state():
     except Exception:
         look = {}
     radius, border = str(look.get("radius", 4)), str(look.get("border", 1))
+    # blur and window transparency (orrery-look); absent = medium blur, 90 %
+    blur_on = look.get("blur", True) is not False
+    size = look.get("blurSize", 8)
+    blur_level = {4: "light", 8: "medium", 14: "strong"}.get(size, str(size))
+    opacity = str(look.get("opacity", 90))
     return {
         "nightlight": bool(sh("pgrep -x hyprsunset")),
         "gaps": gaps_on, "opacity": opac_on, "hibernate": hib,
@@ -63,6 +68,10 @@ def state():
         "scale": (sh("hyprctl monitors -j | jq -r '.[] | select(.focused) | .scale'") or "").rstrip("0").rstrip(".") or "1",
         "wallpaper": os.path.basename(os.path.realpath(f"{HOME}/.config/orrery/current/background")),
         "radius": radius, "border": border,
+        "blur": blur_on, "blurLevel": blur_level, "opacityLevel": opacity,
+        "blurLabel": blur_level.capitalize() if blur_on else "Off",
+        "opacityLabel": "Opaque" if opacity == "100" else f"{opacity}%",
+        "glassLabel": ("Blur " + blur_level if blur_on else "No blur") + " · " + ("opaque" if opacity == "100" else f"{opacity}%"),
         # web apps: which browsers are installed (Add › In Firefox / In Chromium)
         "hasfirefox": bool(shutil.which("firefox")),
         "haschromium": any(shutil.which(b) for b in ("chromium", "google-chrome-stable", "google-chrome", "brave", "brave-browser", "vivaldi-stable", "vivaldi", "microsoft-edge-stable")),

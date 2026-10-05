@@ -79,10 +79,14 @@ uses `Hyprland.monitorFor(screen).scale` instead of `devicePixelRatio`.
 0.9/0.7, shadow, blur, animations. Colours are NOT here (theme). 4px rounding
 and a 1px border are the rice's defaults across every surface; the user
 changes both with `orrery-border radius|width <px>` (Menu › Appearance ›
-Corners & borders). It writes `modules/look.local.lua` (gitignored, loaded
-at the end of decorations.lua, so reloads keep it) plus `look` in
-shell.json for the shell, and applies with `hyprctl eval`. Don't edit the
-defaults in decorations.lua for a user's taste; use the command.
+Corners & borders); blur on/off and strength and window opacity with
+`orrery-look blur on|off|light|medium|strong|<1-20>` · `opacity <40-100>|toggle`
+(Menu › Appearance › Blur & transparency; inactive windows are 20 points more
+transparent). Both save to `look` in shell.json, and `orrery-look sync` writes
+all of it to `modules/look.local.lua` (gitignored, loaded after the theme, so
+reloads keep it) and applies it with `hyprctl eval`. Read `.look` with
+`if . == null`, not `//`: jq's `//` drops `false` (blur off). Don't edit the
+defaults in decorations.lua for a user's taste; use the commands.
 
 A user's own settings (keyboard layout, touchpad, any `hl.config`) go in
 `~/.config/hypr/hyprland.local.lua`: gitignored, loaded at the very end of

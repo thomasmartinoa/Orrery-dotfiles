@@ -97,6 +97,7 @@ Commands you will use (all `--help`/header-documented — read the script if uns
 | `orrery-webapp add [--firefox\|--chromium] [name] <url> [icon]` · `remove <name>` · `list` | web apps: a site in a bare Firefox window (own profile) with its own launcher and dock icon (Menu › Web apps) |
 | `orrery-terminal [path]` | open the default terminal (`orrery-default terminal`), in that folder; Thunar's "Open Terminal Here" uses it |
 | `orrery-border radius <px>` · `width <px>` · `reset` | corners (windows + shell; 0 = square) and window border thickness |
+| `orrery-look blur on\|off\|toggle\|light\|medium\|strong\|<1-20>` · `opacity <40-100>\|toggle` · `reset` | blur (windows, bar, panels, menus) and window transparency |
 | `qs ipc call menu open|run|search <id>` · `orrery-float <cmd>` · `orrery-edit <file>` · `orrery-toggle gaps|opacity` · `orrery-nightlight` · `orrery-remind` · `orrery-default` · `orrery-pkg` | menu actions, usable from anywhere |
 
 ## 3. Rules that keep the rice intact

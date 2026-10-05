@@ -96,6 +96,20 @@ check "  the original is still there"               test -f "$tmpimg"
 check "  the copy is on screen"                     test "$(readlink -f ~/.config/orrery/current/background)" = "$(readlink -f ~/Pictures/Wallpapers/outside.jpg)"
 run "turn it off" "$WT" off
 check "  back to the theme from before"            grep -qx eclipse ~/.config/orrery/current/theme.name
+section "Blur and transparency"
+LL=~/.config/hypr/modules/look.local.lua
+run "orrery-look blur off" ~/.local/bin/orrery-look blur off
+check "  it's in Hyprland's override file"        grep -q 'enabled = false' "$LL"
+run "orrery-look blur strong" ~/.local/bin/orrery-look blur strong
+check "  blur is on again, size 14"                grep -q 'enabled = true, size = 14' "$LL"
+run "orrery-look opacity 80" ~/.local/bin/orrery-look opacity 80
+check "  80 % focused, 60 % the rest"              grep -q 'active_opacity = 0.8, inactive_opacity = 0.6' "$LL"
+run "orrery-border radius 8 (same file)" ~/.local/bin/orrery-border radius 8
+check "  corners and blur both kept"               grep -q 'rounding = 8, blur = { enabled = true, size = 14' "$LL"
+run "orrery-look reset" ~/.local/bin/orrery-look reset
+run "orrery-border reset" ~/.local/bin/orrery-border reset
+check "  the override file is gone"                test ! -e "$LL"
+
 run "install.sh again (safe to re-run)" ./install.sh --skip-root --no-reboot --migrate "${EXTRA[@]}"
 
 section "Uninstall"

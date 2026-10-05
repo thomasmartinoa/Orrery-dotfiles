@@ -9,8 +9,8 @@
 # Applies live and survives reloads, restarts and theme switches:
 #   shell     ~/.config/orrery/shell.json  look.radius  (watched; every surface
 #             follows; without it the theme's own radius is used)
-#   Hyprland  ~/.config/hypr/modules/look.local.lua, loaded after
-#             decorations.lua (not part of the repo), and `hyprctl eval` now
+#   Hyprland  ~/.config/hypr/modules/look.local.lua (written by orrery-look
+#             sync, with blur and opacity), and `hyprctl eval` now
 set -u
 RADIUS=4; BORDER=1                               # the rice's defaults
 SHELL_JSON="$HOME/.config/orrery/shell.json"
@@ -29,13 +29,8 @@ apply() {
                                | if $b == "" then del(.border) else .border = ($b | tonumber) end)
         | if .look == {} then del(.look) else . end' "$SHELL_JSON" > "$tmp" && mv "$tmp" "$SHELL_JSON"
 
-    local lua="hl.config({ decoration = { rounding = ${r:-$RADIUS} }, general = { border_size = ${b:-$BORDER} } })"
-    if [[ -z $r && -z $b ]]; then
-        rm -f "$LOCAL_LUA"
-    else
-        printf -- '-- Written by orrery-border (Menu > Appearance > Corners & borders).\n-- Not part of the repo; `orrery-border reset` removes it.\n%s\n' "$lua" > "$LOCAL_LUA"
-    fi
-    [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && hyprctl eval "$lua" >/dev/null 2>&1
+    # one file for corners, border, blur and opacity: orrery-look writes it and applies it
+    "${BASH_SOURCE[0]%/*}/orrery-look" sync
     printf 'corners %s px  ·  border %s px\n' "${r:-$RADIUS}" "${b:-$BORDER}"
 }
 
