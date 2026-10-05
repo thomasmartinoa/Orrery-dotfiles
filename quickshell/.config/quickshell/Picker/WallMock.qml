@@ -21,12 +21,36 @@ Item {
         width: parent.width; height: 24 * m.k
         color: m.c.bg0 || "black"
         T { x: 12 * m.k; anchors.verticalCenter: parent.verticalCenter; text: "●  2  3  4"; font.pixelSize: 10 * m.k; color: m.c.accent_bright || "white" }
-        T { anchors.centerIn: parent; text: "Monday 09:41"; font.pixelSize: 10 * m.k }
+        T { anchors.centerIn: parent; text: Qt.formatDateTime(new Date(), "dddd HH:mm"); font.pixelSize: 10 * m.k }
         Row {
             anchors.right: parent.right; anchors.rightMargin: 12 * m.k; anchors.verticalCenter: parent.verticalCenter
             spacing: 9 * m.k
             Repeater { model: 5; Rectangle { width: 9 * m.k; height: 9 * m.k; radius: 2 * m.k; color: m.c.accent_light || "white" } }
             Rectangle { width: 9 * m.k; height: 9 * m.k; radius: 4.5 * m.k; color: m.c.accent_bright || "white" }
+        }
+    }
+
+    // ---- the dock ----
+    Rectangle {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom; anchors.bottomMargin: 10 * m.k
+        width: dock.width + 16 * m.k; height: 34 * m.k
+        radius: m.r
+        color: m.c.bg0 || "black"
+        border.width: 1; border.color: m.c.bg3 || "grey"
+        Row {
+            id: dock
+            anchors.centerIn: parent
+            spacing: 8 * m.k
+            Repeater {
+                model: 5
+                Rectangle { required property int index
+                            width: 22 * m.k; height: 22 * m.k; radius: 5 * m.k
+                            color: index === 0 ? (m.c.accent_bright || "white") : (m.c.bg4 || "grey")
+                            // the open app's dot
+                            Rectangle { visible: index === 0; anchors.horizontalCenter: parent.horizontalCenter; anchors.top: parent.bottom; anchors.topMargin: 2 * m.k
+                                        width: 4 * m.k; height: 2 * m.k; radius: 1 * m.k; color: m.c.accent_bright || "white" } }
+            }
         }
     }
 

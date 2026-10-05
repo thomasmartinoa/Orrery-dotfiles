@@ -20,7 +20,7 @@ Rectangle {
     width: row.width + 24
     Behavior on width { NumberAnimation { duration: Motion.moveMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.moveCurve } }
     clip: true
-    height: 44
+    height: 52
     radius: Theme.radius
     color: Theme.c.bg1
     border.width: 1; border.color: Theme.c.border
@@ -41,8 +41,13 @@ Rectangle {
                 on: WallTheme.on
                 onToggled: (want) => want ? WallTheme.apply(bar.path) : WallTheme.turnOff()
             }
-            Label { anchors.verticalCenter: parent.verticalCenter; text: "Colours from wallpaper"
-                    font.pixelSize: Theme.fs(12); color: Theme.c.fg }
+            Column {
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 1
+                Label { text: "Colours from wallpaper"; font.pixelSize: Theme.fs(12); color: Theme.c.fg }
+                Label { text: WallTheme.on ? "The desktop follows the picture" : "Let the picture colour the desktop"
+                        font.pixelSize: Theme.fs(10); color: Theme.c.accentMid }
+            }
         }
 
         // the settings: only with the switch on
@@ -61,14 +66,15 @@ Rectangle {
 
         Segmented {
             anchors.verticalCenter: parent.verticalCenter
-            width: Theme.fs(12) * 13; height: 30
+            width: Theme.fs(12) * 16; height: 30
             current: WallTheme.mode
-            options: [{ label: "Auto", value: "auto" }, { label: "Dark", value: "dark" }, { label: "Light", value: "light" }]
+            // Auto says what it chose for this picture
+            options: [{ label: bar.pv && WallTheme.mode === "auto" ? "Auto · " + (bar.pv.mode === "light" ? "light" : "dark") : "Auto", value: "auto" }, { label: "Dark", value: "dark" }, { label: "Light", value: "light" }]
             onPicked: (v) => { WallTheme.setMode(v); bar.changed() }
         }
         Segmented {
             anchors.verticalCenter: parent.verticalCenter
-            width: Theme.fs(12) * 16; height: 30
+            width: Theme.fs(12) * 18; height: 30
             current: bar.pv && bar.pv.mono ? "" : WallTheme.style
             opacity: bar.pv && bar.pv.mono ? 0.4 : 1
             options: [{ label: "Soft", value: "soft" }, { label: "Faithful", value: "faithful" }, { label: "Vivid", value: "vivid" }]
@@ -80,44 +86,22 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 6
             visible: bar.pv && bar.pv.candidates.length > 1
+            Label { anchors.verticalCenter: parent.verticalCenter; text: "Accent"; font.pixelSize: Theme.fs(11); color: Theme.c.accentMid; rightPadding: 2 }
             Repeater {
                 model: bar.pv ? bar.pv.candidates : []
                 Rectangle {
                     required property string modelData
                     required property int index
                     readonly property bool sel: index === WallTheme.previewAccent
-                    width: 22; height: 22; radius: 11
+                    width: 24; height: 24; radius: 12
                     color: modelData
-                    border.width: sel ? 2 : 1
-                    border.color: sel ? Theme.c.fg : Theme.c.border
+                    border.width: sel || sm.containsMouse ? 2 : 1
+                    border.color: sel ? Theme.c.fg : sm.containsMouse ? Theme.c.accentLight : Theme.c.border
+                    scale: sm.containsMouse && !sel ? 1.1 : 1
+                    Behavior on scale { NumberAnimation { duration: Motion.fadeMs } }
                     Rectangle { anchors.centerIn: parent; visible: parent.sel; width: 6; height: 6; radius: 3; color: Theme.c.fg }
-                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                    MouseArea { id: sm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: { WallTheme.want(bar.path, index); bar.changed() } }
-                }
-            }
-        }
-
-        // what you'd get: the surface, text, accent and hues
-        Rectangle {
-            anchors.verticalCenter: parent.verticalCenter
-            width: 128; height: 30
-            radius: Math.max(2, Theme.radius - 1)
-            color: bar.pv ? bar.pv.colors.bg0 : Theme.c.bg0
-            border.width: 1; border.color: bar.pv ? bar.pv.colors.bg4 : Theme.c.border
-            opacity: bar.pv ? 1 : 0.35
-            Behavior on color { ColorAnimation { duration: Motion.fadeMs } }
-            Row {
-                anchors.centerIn: parent
-                spacing: 6
-                Label { anchors.verticalCenter: parent.verticalCenter; text: "Aa"; font.pixelSize: Theme.fs(12); font.weight: Font.DemiBold
-                        color: bar.pv ? bar.pv.colors.fg : Theme.c.fg }
-                Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 16; height: 16; radius: 8
-                            color: bar.pv ? bar.pv.colors.accent_bright : Theme.c.accentBright }
-                Repeater {
-                    model: ["red", "yellow", "green", "blue", "purple"]
-                    Rectangle { required property string modelData
-                                anchors.verticalCenter: parent.verticalCenter; width: 7; height: 7; radius: 3.5
-                                color: bar.pv ? bar.pv.colors[modelData] : Theme.c.accentDim }
                 }
             }
         }
