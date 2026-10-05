@@ -28,5 +28,5 @@ ShellRoot {
     Clipboard {}
     MenuWindow {}
     // singletons only come alive when referenced; these must run from the start
-    Scope { Component.onCompleted: { void Idle.paused; void Caffeine.on; void Notifs.count; void Bt.on; void Night.on; void Themes.themes; void Shot.on; void MediaApps.classes } }
+    Scope { Component.onCompleted: { void Idle.paused; void Caffeine.on; void Notifs.count; void Bt.on; void Night.on; void Themes.themes; void Shot.on; void MediaApps.classes; void WallTheme.on } }
 }

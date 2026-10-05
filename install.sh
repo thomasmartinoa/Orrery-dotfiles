@@ -20,6 +20,8 @@ PKGS_REPO=(
   neovim fastfetch btop eza
   grim slurp wl-clipboard cliphist playerctl brightnessctl batsignal ffmpeg hyprsunset
   thunar pavucontrol networkmanager nm-connection-editor
+  # colours from the wallpaper (orrery-wall-theme) and its file chooser
+  matugen zenity
   # what the shell talks to: notifications, volume, bluetooth, battery, links
   libnotify pipewire pipewire-pulse wireplumber alsa-utils bluez bluez-utils blueman upower xdg-utils
   ttf-jetbrains-mono-nerd inter-font papirus-icon-theme adw-gtk-theme stow
@@ -543,6 +545,12 @@ else
   fi
   if [[ -f "$_uca" ]] && grep -qF "$_exo" "$_uca"; then
     sed -i "s|$_exo|$HOME/.local/bin/orrery-terminal %f|" "$_uca" && ok "Thunar's \"Open Terminal Here\" opens your default terminal."
+  fi
+  # Thunar: right-click an image > "Set as wallpaper" (orrery-wall-theme use).
+  # Added once, recognised by its id; uninstall.sh takes it out again.
+  if [[ -f "$_uca" ]] && ! grep -q '<unique-id>orrery-set-wallpaper</unique-id>' "$_uca"; then
+    _act="<action>\n\t<icon>preferences-desktop-wallpaper</icon>\n\t<name>Set as wallpaper</name>\n\t<submenu></submenu>\n\t<unique-id>orrery-set-wallpaper</unique-id>\n\t<command>$HOME/.local/bin/orrery-wall-theme use %f</command>\n\t<description>Use this picture as the wallpaper (Orrery)</description>\n\t<range>*</range>\n\t<patterns>*.png;*.jpg;*.jpeg;*.webp;*.PNG;*.JPG;*.JPEG;*.WEBP</patterns>\n\t<image-files/>\n</action>"
+    sed -i "s|</actions>|$_act\n</actions>|" "$_uca" && ok "Thunar: right-click a picture > Set as wallpaper."
   fi
   if "$HOME/.local/bin/orrery-agent" skills install >/dev/null 2>&1; then
     ok "/orrery skill linked for coding agents ($(ls -d "$HOME"/.claude/skills "$HOME"/.agents/skills 2>/dev/null | tr '\n' ' '))."

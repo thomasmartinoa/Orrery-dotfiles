@@ -64,6 +64,38 @@ for t in eclipse zenith catppuccin-mocha cassini; do
   check "  $t: wallpaper is one of its own" bash -c "[[ \$(readlink -f ~/.config/orrery/current/background) == */themes/$t/backgrounds/* ]]"
 done
 run "orrery-theme set eclipse (back)" ~/.local/bin/orrery-theme set eclipse
+
+section "Colours from wallpaper"
+WT=~/.local/bin/orrery-wall-theme
+THEMES=~/.config/orrery/themes
+gen_ok() {   # gen_ok <label>: the generated theme is on, valid and readable
+  check "  $1: the Wallpaper theme is on" grep -qx wallpaper ~/.config/orrery/current/theme.name
+  run "  $1: it passes the theme checks" python3 "$REPO/tests/check.py" --theme "$THEMES/wallpaper"
+}
+for t in eclipse zenith catppuccin-mocha cassini; do
+  img="$(find "$THEMES/$t/backgrounds/" -maxdepth 1 -type f \( -name '*.jpg' -o -name '*.png' \) | head -1)"
+  run "apply $t's wallpaper (auto)" "$WT" apply "$img" --mode auto --style soft
+  gen_ok "$t"
+  check "  $t: its wallpaper is on screen" test "$(readlink -f ~/.config/orrery/current/background)" = "$(readlink -f "$img")"
+done
+check "the fog (white) makes a light theme"       bash -c "$WT apply $THEMES/zenith/backgrounds/*.jpg >/dev/null && grep -q 'mode = \"light\"' $THEMES/wallpaper/colors.toml"
+check "the mountain (grey) makes a grey theme"    bash -c "$WT apply $THEMES/eclipse/backgrounds/*.png >/dev/null && grep -q 'hued = false' $THEMES/wallpaper/colors.toml"
+cas="$(ls "$THEMES"/cassini/backgrounds/*.jpg | head -1)"
+for o in "--style faithful" "--style vivid" "--mode dark" "--mode light" "--accent 2"; do
+  # shellcheck disable=SC2086
+  run "cassini $o" "$WT" apply "$cas" $o
+  gen_ok "cassini $o"
+done
+for a in 0 1 2 3; do
+  check "preview, main colour $a" bash -c "$WT preview '$cas' --accent $a | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"colors\"][\"accent_bright\"] == d[\"candidates\"][d[\"accent\"]]'"
+done
+tmpimg="$(mktemp -d)/outside.jpg"; cp "$cas" "$tmpimg"
+run "use a picture from elsewhere" "$WT" use "$tmpimg"
+check "  it was copied into ~/Pictures/Wallpapers"   test -f ~/Pictures/Wallpapers/outside.jpg
+check "  the original is still there"               test -f "$tmpimg"
+check "  the copy is on screen"                     test "$(readlink -f ~/.config/orrery/current/background)" = "$(readlink -f ~/Pictures/Wallpapers/outside.jpg)"
+run "turn it off" "$WT" off
+check "  back to the theme from before"            grep -qx eclipse ~/.config/orrery/current/theme.name
 run "install.sh again (safe to re-run)" ./install.sh --skip-root --no-reboot --migrate "${EXTRA[@]}"
 
 section "Uninstall"

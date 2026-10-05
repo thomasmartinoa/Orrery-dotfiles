@@ -16,3 +16,4 @@ singleton Night 1.0 Night.qml
 singleton Dock 1.0 Dock.qml
 singleton Shot 1.0 Shot.qml
 singleton MediaApps 1.0 MediaApps.qml
+singleton WallTheme 1.0 WallTheme.qml

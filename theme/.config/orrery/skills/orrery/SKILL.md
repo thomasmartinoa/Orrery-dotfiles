@@ -83,9 +83,10 @@ Commands you will use (all `--help`/header-documented — read the script if uns
 |---|---|
 | `orrery-theme list / current / set <id> / toggle / next / reload / apps / json` | apply a theme everywhere (renders templates → current/, installs GTK/Qt/KDE/btop files, reloads kitty/hyprland/nvim/shell, root+SDDM sync) |
 | `orrery-wall set <path> / next / current / ensure` | wallpaper (shell layer; also lock + SDDM) |
+| `orrery-wall-theme apply [img] [--mode auto\|dark\|light] [--style soft\|faithful\|vivid] [--accent N]` · `off` · `toggle` · `use <img>` · `preview <img>` | colours from the wallpaper: the generated "Wallpaper" theme (theming.md) |
 | `orrery-theme-preview [<id>]` | real screenshot for the theme picker → `themes/<id>/preview.jpg`; restores everything after |
 | `orrery-theme-menu theme|wallpaper` | open the carousel picker |
-| `qs ipc call <target> <fn> [args]` | talk to the running shell. Targets: `bar dock theme wallpaper picker launcher clipboard notifications panels powermenu lock caffeine osd agents menu` (`qs ipc show` lists functions) |
+| `qs ipc call <target> <fn> [args]` | talk to the running shell. Targets: `bar dock theme wallpaper picker launcher clipboard notifications panels powermenu lock caffeine osd agents menu walltheme` (`qs ipc show` lists functions) |
 | `qs log` | the shell's log (QML errors show here) |
 | `~/.config/hypr/scripts/shell.sh restart` | restart the shell (needed after new files/qmldir changes; hot-reload can serve stale code) |
 | `hyprctl reload && hyprctl configerrors` | after ANY Hyprland change; must print nothing |

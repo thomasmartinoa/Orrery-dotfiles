@@ -416,6 +416,11 @@ cmd_toggle() {
     # the first theme with the opposite mode.
     local cur mode want name
     cur="$(current_name)"; [[ -n "$cur" ]] || die "no current theme"
+    # the Wallpaper theme: the same picture in the other mode
+    if [[ $cur == wallpaper ]]; then
+        mode="$(theme_mode "$THEMES_DIR/$cur")"
+        exec "${BASH_SOURCE[0]%/*}/orrery-wall-theme" apply --mode "$([[ $mode == light ]] && echo dark || echo light)" >/dev/null
+    fi
     mode="$(theme_mode "$THEMES_DIR/$cur")"
     want=$([[ "$mode" == light ]] && echo dark || echo light)
     for name in "${cur%-light}" "${cur%-dark}" "${cur}-${want}" "${cur%-light}-${want}" "${cur%-dark}-${want}"; do
@@ -440,6 +445,13 @@ for d in sorted(os.listdir(root)):
     bg = os.path.join(root, d, "backgrounds")
     imgs = sorted(os.path.realpath(os.path.join(bg, x)) for x in os.listdir(bg)
                   if os.path.isfile(os.path.join(bg, x)) and x.lower().rsplit(".", 1)[-1] in ("png", "jpg", "jpeg", "webp")) if os.path.isdir(bg) else []
+    # the Wallpaper theme: the picture it was made from first, even when it
+    # lives elsewhere (a shipped theme's backgrounds), so its card shows it
+    pick = os.path.expanduser("~/.local/state/orrery/background." + d)
+    if d == "wallpaper" and os.path.isfile(pick):
+        p = open(pick).read().strip()
+        if os.path.isfile(p):
+            imgs = [os.path.realpath(p)] + [i for i in imgs if i != os.path.realpath(p)]
     c = t.get("colors", {})
     # a real screenshot of the theme (orrery-theme-preview), shown by the picker
     pv = next((os.path.join(root, d, "preview." + e) for e in ("jpg", "png") if os.path.isfile(os.path.join(root, d, "preview." + e))), "")

@@ -166,6 +166,15 @@ if [[ -f "$uca" ]] && grep -qF "/.local/bin/orrery-terminal %f" "$uca"; then
   run sed -i "s|[^<>]*/.local/bin/orrery-terminal %f|exo-open --working-directory %f --launch TerminalEmulator|" "$uca"
   did "Thunar's \"Open Terminal Here\" back to the default."
 fi
+if [[ -f "$uca" ]] && grep -q '<unique-id>orrery-set-wallpaper</unique-id>' "$uca"; then
+  run python3 - "$uca" <<'PY'
+import re, sys
+p = sys.argv[1]; s = open(p).read()
+s = re.sub(r"<action>(?:(?!</action>).)*<unique-id>orrery-set-wallpaper</unique-id>.*?</action>\n?", "", s, flags=re.S)
+open(p, "w").write(s)
+PY
+  did "Thunar's \"Set as wallpaper\" action removed."
+fi
 
 # ============================================================================
 step "Shell, agents and web apps"
@@ -206,6 +215,10 @@ if [[ ${#apps[@]} -gt 0 ]]; then
   else
     info "Kept (launchers in ~/.local/share/applications, logins in ~/.local/share/orrery/webapps)."
   fi
+fi
+# colours from wallpaper: its cache (your wallpapers folder stays: they're your pictures)
+if [[ -d "$HOME/.cache/orrery" ]]; then
+  run rm -rf -- "${HOME:?}/.cache/orrery" && did "Removed ~/.cache/orrery."
 fi
 # the shell's own state: launcher history, last wallpapers, the diagnostics report
 if [[ -d "$HOME/.local/state/orrery" ]]; then

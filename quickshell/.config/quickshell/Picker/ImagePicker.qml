@@ -8,9 +8,11 @@ import qs.Services
 // The picker — Omarchy's carousel: the selected item expanded in the
 // middle, the rest as tall dimmed slices to either side, all sliding as
 // the selection moves. Themes are previewed live in their own colours
-// (ThemePreview); wallpapers are just the image.
-// ← → (h l), Home/End, scroll; Enter applies; Esc; type to filter. No
-// text under it — the picture is the whole UI.
+// (ThemePreview); wallpapers are just the image, with colours-from-wallpaper
+// under them (WallOptions).
+// ← → (h l), Home/End, scroll; Enter applies; Esc; type to filter. Wallpapers
+// also: Ctrl+T colours on/off, Ctrl+M mode, Ctrl+S style, Ctrl+1–4 main colour,
+// Ctrl+O add an image; or drop an image file on the picker.
 Variants {
     model: Quickshell.screens
     PanelWindow {
@@ -35,12 +37,21 @@ Variants {
         }
         // the catalogue is re-read on open; until it lands, land on the current item
         property bool snapToCurrent: false
-        function snap() { selected = Math.max(0, items.findIndex(t => t.current || t.path === Wallpaper.path)) }
+        function snap() { selected = Math.max(0, items.findIndex(t => t.current || t.path === Wallpaper.file)) }
         onItemsChanged: {
+            // a picture just added (file chooser, drop): select it once it's listed
+            if (pendingPath) { const i = items.findIndex(t => t.path === pendingPath); if (i >= 0) { selected = i; pendingPath = ""; snapToCurrent = false; return } }
             if (snapToCurrent && filter === "") snap()
             else if (selected >= items.length) selected = Math.max(0, items.length - 1)
         }
-        onVisibleChanged: if (visible) { filter = ""; snapToCurrent = true; snap() } else snapToCurrent = false
+        onVisibleChanged: if (visible) { filter = ""; snapToCurrent = true; snap(); WallTheme.refresh(); askPreview(true) } else snapToCurrent = false
+        // the palette for the selection; on open always fresh (settings or the
+        // theme may have changed since the picker was last shown)
+        function askPreview(fresh) {
+            if (themeMode || !selPath) return
+            if (fresh) WallTheme.preview = null
+            WallTheme.want(selPath, selIsCurrent && WallTheme.on ? WallTheme.accent : 0)
+        }
         onFilterChanged: if (filter !== "") snapToCurrent = false
 
         // geometry (Omarchy: 768x475 expanded, 108x432 slices); scaled to the screen
@@ -55,8 +66,26 @@ Variants {
 
         function activate() {
             const it = items[selected]; if (!it) return
-            if (themeMode) Themes.apply(it.id); else Themes.applyWallpaper(it.path)
+            if (themeMode) Themes.apply(it.id)
+            else if (WallTheme.on) { WallTheme.apply(it.path); Themes.close() }
+            else Themes.applyWallpaper(it.path)
         }
+
+        // colours from wallpaper: the selected picture's palette, kept fresh
+        readonly property string selPath: !themeMode && items[selected] ? (items[selected].path || "") : ""
+        readonly property bool selIsCurrent: selPath !== "" && selPath === Wallpaper.file
+        onSelPathChanged: askPreview(false)
+        Connections { target: Themes; function onMoveBy(by) { win.move(by) } }
+        // a picture just added (file chooser, drop): select it once it's listed
+        property string pendingPath: ""
+        Connections {
+            target: WallTheme
+            function onAdded(path) {
+                win.pendingPath = path
+                if (WallTheme.on) WallTheme.apply(path, 0)
+            }
+        }
+        function cycle(list, cur) { return list[(list.indexOf(cur) + 1) % list.length] }
         function move(d) { const n = items.length; if (n) selected = Math.max(0, Math.min(n - 1, selected + d)) }
 
         MouseArea { anchors.fill: parent; onClicked: Themes.close(); onWheel: (w) => win.move(w.angleDelta.y > 0 ? -1 : 1) }
@@ -65,6 +94,13 @@ Variants {
             anchors.fill: parent
             focus: Themes.open
             Keys.onPressed: (e) => {
+                if (!win.themeMode && (e.modifiers & Qt.ControlModifier)) {
+                    if (e.key === Qt.Key_T) { if (WallTheme.on) WallTheme.turnOff(); else WallTheme.apply(win.selPath); return }
+                    if (e.key === Qt.Key_M) { WallTheme.setMode(win.cycle(["auto", "dark", "light"], WallTheme.mode)); opts.changed(); return }
+                    if (e.key === Qt.Key_S) { WallTheme.setStyle(win.cycle(["soft", "faithful", "vivid"], WallTheme.style)); opts.changed(); return }
+                    if (e.key === Qt.Key_O) { WallTheme.addImage(); return }
+                    if (e.key >= Qt.Key_1 && e.key <= Qt.Key_4) { WallTheme.want(win.selPath, e.key - Qt.Key_1); opts.changed(); return }
+                }
                 if (e.key === Qt.Key_Escape) { if (win.filter !== "") win.filter = ""; else Themes.close(); return }
                 if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) { win.activate(); return }
                 if (e.key === Qt.Key_Left  || (e.key === Qt.Key_H && win.filter === "")) { win.move(-1); return }
@@ -150,10 +186,34 @@ Variants {
                 }
             }
 
-            // nothing under the carousel; only the filter shows while you type
+            // wallpapers: colours from the wallpaper
+            WallOptions {
+                id: opts
+                visible: !win.themeMode
+                anchors.top: carousel.bottom; anchors.topMargin: 18
+                anchors.horizontalCenter: parent.horizontalCenter
+                path: win.selPath
+                isCurrent: win.selIsCurrent
+                onApplyNow: WallTheme.apply(win.selPath)
+            }
+
+            // an image file dropped from a file manager: into your folder, and selected
+            DropArea {
+                anchors.fill: parent
+                enabled: !win.themeMode
+                keys: ["text/uri-list"]
+                onDropped: (drop) => {
+                    for (const u of drop.urls) {
+                        const p = decodeURIComponent(u.toString().replace(/^file:\/\//, ""))
+                        if (/\.(png|jpe?g|webp)$/i.test(p)) { WallTheme.importImage(p); break }
+                    }
+                }
+            }
+
+            // only the filter shows while you type
             Label {
                 visible: win.filter !== ""
-                anchors.top: carousel.bottom; anchors.topMargin: 18
+                anchors.top: win.themeMode ? carousel.bottom : opts.bottom; anchors.topMargin: 18
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "\u{f0349}  " + win.filter
                 font.pixelSize: Theme.fs(13); color: Theme.c.fg
