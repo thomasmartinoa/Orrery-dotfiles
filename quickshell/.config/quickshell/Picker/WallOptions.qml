@@ -7,8 +7,9 @@ import qs.Services
 // Under the wallpaper carousel: colours from the wallpaper. The switch turns
 // the generated "Wallpaper" theme on or off; mode, style and the picture's
 // main colours shape it, and the chip shows what the selected picture would
-// give. With it on, a change to the wallpaper on screen applies at once;
-// another picture applies on Enter, as always.
+// give. Off, only the switch shows (the rest would do nothing); on, the rest
+// slides open. With it on, a change to the wallpaper on screen applies at
+// once; another picture applies on Enter, as always.
 Rectangle {
     id: bar
     property string path: ""                 // the selected picture
@@ -17,6 +18,8 @@ Rectangle {
     signal applyNow()                         // re-apply the picture on screen with the new settings
 
     width: row.width + 24
+    Behavior on width { NumberAnimation { duration: Motion.moveMs; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.moveCurve } }
+    clip: true
     height: 44
     radius: Theme.radius
     color: Theme.c.bg1
@@ -42,6 +45,18 @@ Rectangle {
                     font.pixelSize: Theme.fs(12); color: Theme.c.fg }
         }
 
+        // the settings: only with the switch on
+        Item {
+            id: more
+            anchors.verticalCenter: parent.verticalCenter
+            width: WallTheme.on ? moreRow.width : 0
+            height: moreRow.height
+            opacity: WallTheme.on ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Motion.fadeMs } }
+            Row {
+                id: moreRow
+                spacing: 14
+                visible: more.opacity > 0
         Rectangle { width: 1; height: 24; anchors.verticalCenter: parent.verticalCenter; color: Theme.c.border }
 
         Segmented {
@@ -107,10 +122,7 @@ Rectangle {
             }
         }
 
-        IconButton {
-            anchors.verticalCenter: parent.verticalCenter
-            icon: "add_photo_alternate"
-            onClicked: WallTheme.addImage()
+            }
         }
     }
 }

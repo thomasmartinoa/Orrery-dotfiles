@@ -11,7 +11,11 @@ import qs.Commons
 Singleton {
     id: root
     readonly property string bin: Quickshell.env("HOME") + "/.local/bin/orrery-wall-theme"
-    readonly property bool on: Theme.name === "Wallpaper"
+    readonly property bool on: Theme.name === "From wallpaper"
+    // what the menu shows: "On · Soft · Auto", "On · Grey · Auto", "Off"
+    readonly property string label: !on ? "Off"
+        : ["On", Theme.hued ? ({ soft: "Soft", faithful: "Faithful", vivid: "Vivid" })[style] : "Grey",
+           ({ auto: "Auto", dark: "Dark", light: "Light" })[mode]].join(" · ")
     property string mode: "auto"          // auto | dark | light
     property string style: "soft"         // soft | faithful | vivid
     property int accent: 0
@@ -114,5 +118,8 @@ Singleton {
         function apply(path: string): void { root.apply(path, 0) }
         function off(): void { root.turnOff() }
         function add(): void { root.addImage() }
+        // orrery-wall-theme, around an apply (any route: picker, menu, Thunar, CLI)
+        function working(): void { root.busy = true; Osd.colours(true) }
+        function done(): void { root.busy = false; Osd.colours(false); root.refresh() }
     }
 }

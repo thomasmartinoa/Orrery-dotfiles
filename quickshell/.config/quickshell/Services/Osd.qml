@@ -10,7 +10,7 @@ import Quickshell.Services.Pipewire
 // notify.
 Singleton {
     id: root
-    property string kind: "volume"     // volume | mic | brightness
+    property string kind: "volume"     // volume | mic | brightness | colours
     property real value: 0             // 0..1
     property bool muted: false
     property bool visible: false
@@ -22,6 +22,13 @@ Singleton {
         hide.restart()
     }
     Timer { id: hide; interval: 1400; onTriggered: root.visible = false }
+    // colours from the wallpaper: shown while they're being applied (a few
+    // seconds), then "applied" for a moment
+    property bool working: false
+    function colours(on) {
+        kind = "colours"; working = on; visible = true
+        if (on) hide.stop(); else hide.restart()
+    }
     Timer { interval: 2000; running: true; onTriggered: root.armed = true }
 
     readonly property var sink: Pipewire.defaultAudioSink
