@@ -17,7 +17,8 @@ Variants {
         // clear of a bottom dock (its icon row + padding + gap), whether or not
         // it is slid away at the moment
         margins.bottom: Dock.enabled && Dock.position === "bottom" ? Dock.iconSize + 12 + 12 + 6 + 16 : 60
-        implicitWidth: 260
+        // the colours notice is sized to its text, so it sits centred
+        implicitWidth: Osd.kind === "colours" ? coloursRow.width + 56 : 260
         implicitHeight: 48
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
@@ -39,21 +40,22 @@ Variants {
                                          : Osd.muted ? "volume_off" : Osd.value < 0.01 ? "volume_mute" : Osd.value < 0.5 ? "volume_down" : "volume_up"
             // colours from the wallpaper: a message and a moving bar while it works
             Row {
+                id: coloursRow
                 anchors.centerIn: parent
-                spacing: 12
+                spacing: 10
                 visible: Osd.kind === "colours"
-                Icon { icon: Osd.working ? "palette" : "check"; size: Theme.fs(20); width: 24; color: Theme.c.accentBright
+                Icon { icon: Osd.working ? "palette" : "check"; size: Theme.fs(18); color: Theme.c.accentBright
                        anchors.verticalCenter: parent.verticalCenter }
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: 6
-                    Label { text: Osd.working ? "Applying colours…" : "Colours applied"; font.pixelSize: Theme.fs(12); color: Theme.c.fg }
+                    spacing: 5
+                    Label { id: coloursText; text: Osd.working ? "Applying colours…" : "Colours applied"; font.pixelSize: Theme.fs(12); color: Theme.c.fg }
                     Rectangle {
-                        width: 170; height: 3; radius: 1.5; color: Theme.c.bg3; clip: true
+                        width: Math.max(coloursText.width, 140); height: 3; radius: 1.5; color: Theme.c.bg3; clip: true
                         visible: Osd.working
                         Rectangle {
                             width: 50; height: parent.height; radius: 1.5; color: Theme.c.accentBright
-                            NumberAnimation on x { from: -50; to: 170; duration: 1100; loops: Animation.Infinite; running: Osd.working && Osd.visible }
+                            NumberAnimation on x { from: -50; to: 190; duration: 1100; loops: Animation.Infinite; running: Osd.working && Osd.visible }
                         }
                     }
                 }

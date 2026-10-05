@@ -396,7 +396,7 @@ cmd_set() {
         mv "$NEXT_DIR" "$CURRENT_DIR"
     fi
     apply
-    have notify-send && notify-send -a orrery-theme "Theme: $(sed -n 's/^name *= *"\(.*\)".*/\1/p' "$src/colors.toml")" "$(theme_mode "$src") mode" 2>/dev/null || true
+    [[ -z ${ORRERY_WALL_THEME:-} ]] && have notify-send && notify-send -a orrery-theme "Theme: $(sed -n 's/^name *= *"\(.*\)".*/\1/p' "$src/colors.toml")" "$(theme_mode "$src") mode" 2>/dev/null || true
     printf '%s\n' "$name"
 }
 

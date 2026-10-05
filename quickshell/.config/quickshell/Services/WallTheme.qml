@@ -20,6 +20,10 @@ Singleton {
     property string style: "soft"         // soft | faithful | vivid
     property int accent: 0
     property string folder: ""
+    property var accents: ({})            // picture -> the accent you chose for it
+    property string picture: ""           // what "on" uses: your last picture, else your folder's first
+    function accentFor(path) { return accents[path] !== undefined ? accents[path] : 0 }
+    function isOwn(path) { return images.indexOf(path) !== -1 }
     property var images: []               // your folder, newest last
     property bool busy: false             // a palette is being applied
 
@@ -30,12 +34,22 @@ Singleton {
 
     function refresh() { status.running = true; list.running = true }
 
-    // apply the picture (and remember the settings); off = back to your theme
+    // apply a picture with the remembered settings (and its own remembered
+    // accent, unless one is given); off = back to your theme
     function apply(path, accentIndex) {
         busy = true
-        applyProc.command = [bin, "apply", path, "--mode", mode, "--style", style,
-                             "--accent", String(accentIndex === undefined ? previewAccent : accentIndex)]
+        const cmd = [bin, "apply", path]
+        if (accentIndex !== undefined) cmd.push("--accent", String(accentIndex))
+        applyProc.command = cmd
         applyProc.running = true
+    }
+    // on: the picture you're looking at if it's one of yours, else your last
+    // one (never a shipped theme's wallpaper you didn't pick); with no pictures
+    // of yours yet, the file chooser
+    function turnOn(selected) {
+        if (selected && isOwn(selected)) apply(selected)
+        else if (picture) { busy = true; applyProc.command = [bin, "on"]; applyProc.running = true }
+        else addImage()
     }
     function turnOff() { Quickshell.execDetached([bin, "off"]) }
 
@@ -47,8 +61,10 @@ Singleton {
         previewAccent = accentIndex
         debounce.restart()
     }
-    function setMode(m) { mode = m; rePreview() }
-    function setStyle(s) { style = s; rePreview() }
+    // remembered at once (and the desktop re-coloured when it's on)
+    function setMode(m) { if (m === mode) return; mode = m; rePreview(); save() }
+    function setStyle(s) { if (s === style) return; style = s; rePreview(); save() }
+    function save() { Quickshell.execDetached([bin, "config", "--mode", mode, "--style", style]) }
     function rePreview() { preview = null; debounce.restart() }
 
     // a picture from anywhere: the GTK file chooser, then into the folder
@@ -78,6 +94,7 @@ Singleton {
         stdout: StdioCollector { onStreamFinished: { try {
             const s = JSON.parse(text)
             root.mode = s.mode; root.style = s.style; root.accent = s.accent; root.folder = s.folder
+            root.accents = s.accents || {}; root.picture = s["default"] || ""
             // the picture on screen: its swatch follows the accent in use
             if (root.on && root.previewPath === Wallpaper.file && root.previewAccent !== s.accent) root.want(root.previewPath, s.accent)
         } catch (e) {} } }
@@ -115,7 +132,8 @@ Singleton {
 
     IpcHandler {
         target: "walltheme"
-        function apply(path: string): void { root.apply(path, 0) }
+        function apply(path: string): void { root.apply(path) }
+        function on(): void { root.turnOn("") }
         function off(): void { root.turnOff() }
         function add(): void { root.addImage() }
         // orrery-wall-theme, around an apply (any route: picker, menu, Thunar, CLI)

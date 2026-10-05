@@ -293,6 +293,13 @@ before (`~/.local/state/orrery/wallpaper-theme.json` remembers it and the settin
   back into `orrery-wall-theme apply` (guarded by `ORRERY_WALL_THEME=1`). A picture from
   anywhere else is **copied** into the folder (`import`/`use`), never moved; a shipped
   theme's background is used in place.
+- State (`~/.local/state/orrery/wallpaper-theme.json`): `mode` and `style` are global and
+  saved the moment they change (`orrery-wall-theme config`, which re-applies when on); the
+  accent is per picture (`accents`); `picture` is the last one used. `on` / `apply` with no
+  image use that picture, else the folder's first, never a shipped theme's wallpaper the
+  user didn't pick (with no pictures of their own, the shell opens the file chooser).
+  Applies run `orrery-theme set` with `ORRERY_WALL_THEME=1`: no "Theme: …" notification,
+  the OSD notice says it.
 - `--mode auto` decides by brightness (ffmpeg YAVG ≥ 150 light, ≤ 110 dark, else the mode on
   screen); `--style soft|faithful|vivid` = matugen `scheme-tonal-spot|content|vibrant`;
   `--accent N` picks among the picture's main colours (`preview` lists the accent each

@@ -57,13 +57,12 @@ Variants {
         // theme may have changed since the picker was last shown)
         function askPreview(fresh) {
             // the theme picker's "From wallpaper" card before its first use: the wallpaper on screen
-            if (themeMode) { if (!Themes.themes.find(t => t.id === "wallpaper") && Wallpaper.file) WallTheme.want(Wallpaper.file, 0); return }
+            if (themeMode) { if (!Themes.themes.find(t => t.id === "wallpaper") && WallTheme.picture) WallTheme.want(WallTheme.picture, WallTheme.accentFor(WallTheme.picture)); return }
             if (!selPath) return
             if (fresh) WallTheme.preview = null
             // computed here, not from selIsCurrent: in a change handler that
             // binding can still hold the previous picture's answer
-            const current = selPath === Wallpaper.file
-            WallTheme.want(selPath, current && WallTheme.on ? WallTheme.accent : 0)
+            WallTheme.want(selPath, WallTheme.accentFor(selPath))
         }
         onFilterChanged: if (filter !== "") snapToCurrent = false
 
@@ -79,10 +78,11 @@ Variants {
 
         function activate() {
             const it = items[selected]; if (!it) return
-            if (themeMode && it.virtual) { WallTheme.apply(Wallpaper.file, 0); Themes.close() }
+            if (themeMode && it.virtual) { WallTheme.turnOn(""); Themes.close() }
             else if (themeMode) Themes.apply(it.id)
             else if (it.add) WallTheme.addImage()
-            else if (WallTheme.on) { WallTheme.apply(it.path); Themes.close() }
+            // the accent you clicked for this picture, else the one it remembers
+            else if (WallTheme.on) { WallTheme.apply(it.path, WallTheme.previewPath === it.path ? WallTheme.previewAccent : undefined); Themes.close() }
             else Themes.applyWallpaper(it.path)
         }
 
@@ -110,9 +110,9 @@ Variants {
             focus: Themes.open
             Keys.onPressed: (e) => {
                 if (!win.themeMode && (e.modifiers & Qt.ControlModifier)) {
-                    if (e.key === Qt.Key_T) { if (WallTheme.on) WallTheme.turnOff(); else WallTheme.apply(win.selPath); return }
-                    if (e.key === Qt.Key_M) { WallTheme.setMode(win.cycle(["auto", "dark", "light"], WallTheme.mode)); opts.changed(); return }
-                    if (e.key === Qt.Key_S) { WallTheme.setStyle(win.cycle(["soft", "faithful", "vivid"], WallTheme.style)); opts.changed(); return }
+                    if (e.key === Qt.Key_T) { if (WallTheme.on) WallTheme.turnOff(); else WallTheme.turnOn(win.selPath); return }
+                    if (e.key === Qt.Key_M) { WallTheme.setMode(win.cycle(["auto", "dark", "light"], WallTheme.mode)); return }
+                    if (e.key === Qt.Key_S) { WallTheme.setStyle(win.cycle(["soft", "faithful", "vivid"], WallTheme.style)); return }
                     if (e.key === Qt.Key_O) { WallTheme.addImage(); return }
                     if (e.key >= Qt.Key_1 && e.key <= Qt.Key_4) { WallTheme.want(win.selPath, e.key - Qt.Key_1); opts.changed(); return }
                 }
@@ -281,7 +281,7 @@ Variants {
                 anchors.horizontalCenter: parent.horizontalCenter
                 path: win.selPath
                 isCurrent: win.selIsCurrent
-                onApplyNow: WallTheme.apply(win.selPath)
+                onApplyNow: WallTheme.apply(win.selPath, WallTheme.previewAccent)
             }
 
             // an image file dropped from a file manager: into your folder, and selected

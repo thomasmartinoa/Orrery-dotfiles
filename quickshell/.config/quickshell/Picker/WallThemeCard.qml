@@ -11,9 +11,9 @@ Item {
     id: card
     required property var theme          // the catalogue entry, or { virtual: true }
     readonly property bool virtual: !!theme.virtual
-    readonly property string picture: !virtual && theme.backgrounds && theme.backgrounds.length ? theme.backgrounds[0] : Wallpaper.file
+    readonly property string picture: !virtual && theme.backgrounds && theme.backgrounds.length ? theme.backgrounds[0] : WallTheme.picture
     readonly property var colors: !virtual ? theme.colors
-        : (WallTheme.preview && WallTheme.previewPath === Wallpaper.file ? WallTheme.preview.colors : null)
+        : (WallTheme.preview && WallTheme.previewPath === WallTheme.picture ? WallTheme.preview.colors : null)
 
     Image {
         anchors.fill: parent
@@ -40,7 +40,7 @@ Item {
             Icon { anchors.verticalCenter: parent.verticalCenter; icon: "palette"; size: 14 * parent.parent.k
                    color: card.colors ? card.colors.accent_bright : Theme.c.accentBright }
             Label { anchors.verticalCenter: parent.verticalCenter
-                    text: card.virtual ? "From your wallpaper · Enter to try it" : "From your wallpaper"
+                    text: !card.virtual ? "From your wallpaper" : card.picture ? "From your pictures · Enter to try it" : "Add a picture to start"
                     font.pixelSize: 11 * parent.parent.k; color: card.colors ? card.colors.fg : Theme.c.fg }
         }
     }

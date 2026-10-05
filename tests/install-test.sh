@@ -96,6 +96,14 @@ check "  the original is still there"               test -f "$tmpimg"
 check "  the copy is on screen"                     test "$(readlink -f ~/.config/orrery/current/background)" = "$(readlink -f ~/Pictures/Wallpapers/outside.jpg)"
 run "turn it off" "$WT" off
 check "  back to the theme from before"            grep -qx eclipse ~/.config/orrery/current/theme.name
+run "settings are remembered while off" "$WT" config --mode light
+run "turn it on again" "$WT" on
+check "  it uses your last picture, not the theme's"  test "$(readlink -f ~/.config/orrery/current/background)" = "$(readlink -f ~/Pictures/Wallpapers/outside.jpg)"
+check "  and the mode you chose"                      grep -q 'mode = "light"' "$THEMES/wallpaper/colors.toml"
+run "accent 2 for one picture" "$WT" apply "$cas" --accent 2
+run "another picture" "$WT" apply ~/Pictures/Wallpapers/outside.jpg
+check "  the first keeps its accent"                  bash -c "$WT apply '$cas' | python3 -c 'import json,sys; assert json.load(sys.stdin)[\"accent\"] == 2'"
+run "off again" "$WT" off
 section "Blur and transparency"
 LL=~/.config/hypr/modules/look.local.lua
 run "orrery-look blur off" ~/.local/bin/orrery-look blur off
