@@ -459,7 +459,8 @@ for d in sorted(os.listdir(root)):
                 "current": d == current, "backgrounds": imgs, "preview": os.path.realpath(pv) if pv else "",
                 # changes when the preview is retaken, so the picker can cache the image
                 "previewStamp": int(os.path.getmtime(pv)) if pv else 0,
-                "colors": {k: c.get(k, "") for k in ("bg0", "bg1", "bg2", "bg3", "fg", "accent_bright", "accent_light", "accent_mid", "accent_dim")}})
+                "colors": {k: c.get(k, "") for k in ("bg0", "bg1", "bg2", "bg3", "bg4", "fg", "accent_bright", "accent_light", "accent_mid", "accent_dim",
+                                                    "red", "orange", "yellow", "green", "aqua", "blue", "purple")}})
 print(json.dumps(out))
 PY
 }

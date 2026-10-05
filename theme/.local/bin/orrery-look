@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# orrery-look — blur and window transparency, for the whole desktop.
+#
+#   orrery-look                       print the current settings
+#   orrery-look blur on|off|toggle    blur behind windows, the bar, panels and menus
+#   orrery-look blur light|medium|strong|<1-20>   how strong (medium is the default)
+#   orrery-look opacity <40-100>      the focused window's opacity in % (90 by default);
+#                                     other windows are 20 points more transparent
+#   orrery-look opacity toggle        fully opaque, or back to your level
+#   orrery-look reset                 back to the defaults
+#   orrery-look sync                  re-apply everything (orrery-border calls this)
+#
+# Applies live and survives reloads, restarts and theme switches: the values
+# go in ~/.config/orrery/shell.json (.look) and, with the corners and border
+# from orrery-border, into ~/.config/hypr/modules/look.local.lua, which
+# Hyprland loads after the theme (not part of the repo).
+set -u
+SHELL_JSON="$HOME/.config/orrery/shell.json"
+LOCAL_LUA="$HOME/.config/hypr/modules/look.local.lua"
+# the rice's defaults (modules/decorations.lua)
+D_SIZE=8; D_PASSES=3; D_OPACITY=90
+
+die() { echo "orrery-look: $*" >&2; exit 1; }
+get() { jq -r --arg k "$1" '.look[$k] | if . == null then empty else . end' "$SHELL_JSON" 2>/dev/null || true; }   # (not //: it drops false)
+# set <key> <json value> | set <key> "" (remove)
+set_key() {
+    mkdir -p "$(dirname "$SHELL_JSON")"
+    [[ -f "$SHELL_JSON" ]] || printf '{}\n' > "$SHELL_JSON"
+    local tmp; tmp="$(mktemp)"
+    jq --arg k "$1" --arg v "$2" '
+        .look = ((.look // {}) | if $v == "" then del(.[$k]) else .[$k] = ($v | fromjson) end)
+        | if .look == {} then del(.look) else . end' "$SHELL_JSON" > "$tmp" && mv "$tmp" "$SHELL_JSON"
+}
+passes_for() { local n=$1; (( n <= 4 )) && echo 2 || { (( n <= 10 )) && echo 3 || echo 4; }; }
+level_of() { case "$1" in 4) echo light ;; 8) echo medium ;; 14) echo strong ;; *) echo "$1" ;; esac; }
+
+# write look.local.lua from everything in .look, and apply it now
+sync() {
+    local radius border blur size opacity inactive theme_radius lua=""
+    radius="$(get radius)"; border="$(get border)"; blur="$(get blur)"
+    size="$(get blurSize)"; opacity="$(get opacity)"
+    theme_radius="$(jq -r '.radius // 4' "$HOME/.config/orrery/current/colors.json" 2>/dev/null || echo 4)"
+    local dec="rounding = ${radius:-$theme_radius}"
+    dec+=", blur = { enabled = ${blur:-true}, size = ${size:-$D_SIZE}, passes = $(passes_for "${size:-$D_SIZE}") }"
+    opacity="${opacity:-$D_OPACITY}"
+    inactive=$(( opacity >= 100 ? 100 : opacity - 20 ))
+    dec+=", active_opacity = $(awk "BEGIN{print $opacity/100}"), inactive_opacity = $(awk "BEGIN{print $inactive/100}")"
+    lua="hl.config({ decoration = { $dec }, general = { border_size = ${border:-1} } })"
+    mkdir -p "$(dirname "$LOCAL_LUA")"
+    if [[ -z "$(jq -r '.look // empty' "$SHELL_JSON" 2>/dev/null)" ]]; then
+        rm -f "$LOCAL_LUA"
+    else
+        printf -- '-- Written by orrery-look and orrery-border (Menu > Appearance).\n-- Not part of the repo; `orrery-look reset` and `orrery-border reset` clear it.\n%s\n' "$lua" > "$LOCAL_LUA"
+    fi
+    [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && hyprctl eval "$lua" >/dev/null 2>&1
+    return 0
+}
+
+show() {
+    local blur size opacity
+    blur="$(get blur)"; size="$(get blurSize)"; opacity="$(get opacity)"
+    printf 'blur:    %s, %s\nopacity: %s%%\n' "$([[ ${blur:-true} == false ]] && echo off || echo on)" \
+        "$(level_of "${size:-$D_SIZE}")" "${opacity:-$D_OPACITY}"
+}
+
+case "${1:-}" in
+    "") show ;;
+    blur)
+        case "${2:-}" in
+            on)      set_key blur true ;;
+            off)     set_key blur false ;;
+            toggle)  [[ "$(get blur)" == false ]] && set_key blur true || set_key blur false ;;
+            light)   set_key blurSize 4;  set_key blur true ;;
+            medium)  set_key blurSize ""; set_key blur true ;;
+            strong)  set_key blurSize 14; set_key blur true ;;
+            *)  [[ ${2:-} =~ ^[0-9]+$ ]] && (( $2 >= 1 && $2 <= 20 )) || die "blur on|off|toggle|light|medium|strong|1-20"
+                [[ $2 == "$D_SIZE" ]] && set_key blurSize "" || set_key blurSize "$2"; set_key blur true ;;
+        esac
+        # "on" with nothing else set is the default: keep shell.json tidy
+        [[ "$(get blur)" == true ]] && set_key blur ""
+        sync; show ;;
+    opacity)
+        case "${2:-}" in
+            toggle)
+                cur="$(get opacity)"
+                if [[ ${cur:-$D_OPACITY} -ge 100 ]]; then
+                    prev="$(get opacityBefore)"; set_key opacityBefore ""
+                    [[ -z $prev || $prev == "$D_OPACITY" ]] && set_key opacity "" || set_key opacity "$prev"
+                else
+                    set_key opacityBefore "${cur:-$D_OPACITY}"; set_key opacity 100
+                fi ;;
+            *)  [[ ${2:-} =~ ^[0-9]+$ ]] && (( $2 >= 40 && $2 <= 100 )) || die "opacity 40-100 | toggle"
+                set_key opacityBefore ""
+                [[ $2 == "$D_OPACITY" ]] && set_key opacity "" || set_key opacity "$2" ;;
+        esac
+        sync; show ;;
+    reset)
+        for k in blur blurSize opacity opacityBefore; do set_key "$k" ""; done
+        sync; show ;;
+    sync) sync ;;
+    -h|--help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *) die "usage: orrery-look [blur …|opacity …|reset]" ;;
+esac

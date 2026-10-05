@@ -9,11 +9,7 @@ case "${1:-}" in
         else
             hyprctl eval 'hl.config({ general = { gaps_in = 0, gaps_out = 0 }, decoration = { rounding = 0 } })' >/dev/null
         fi ;;
-    opacity)
-        if hyprctl getoption decoration:active_opacity -j | jq -e '.float > 0.999' >/dev/null; then
-            hyprctl reload >/dev/null
-        else
-            hyprctl eval 'hl.config({ decoration = { active_opacity = 1, inactive_opacity = 1 } })' >/dev/null
-        fi ;;
+    opacity)   # fully opaque, or back to your level (Menu > Appearance > Blur & transparency)
+        "${BASH_SOURCE[0]%/*}/orrery-look" opacity toggle >/dev/null ;;
     *) echo "usage: orrery-toggle gaps|opacity" >&2; exit 1 ;;
 esac

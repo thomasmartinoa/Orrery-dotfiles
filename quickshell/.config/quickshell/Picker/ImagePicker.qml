@@ -32,8 +32,16 @@ Variants {
         property int selected: 0
         readonly property var items: {
             const q = filter.toLowerCase()
-            if (themeMode) return Themes.themes.filter(t => q === "" || t.name.toLowerCase().indexOf(q) !== -1 || t.id.indexOf(q) !== -1)
-            return Themes.wallpapers.filter(p => q === "" || p.split("/").pop().toLowerCase().indexOf(q) !== -1).map(p => ({ path: p }))
+            if (themeMode) {
+                // "From wallpaper" last, and there even before its first use
+                const match = (t) => q === "" || t.name.toLowerCase().indexOf(q) !== -1 || t.id.indexOf(q) !== -1
+                const own = Themes.themes.filter(t => t.id !== "wallpaper" && match(t))
+                const wall = Themes.themes.find(t => t.id === "wallpaper") || { id: "wallpaper", name: "From wallpaper", virtual: true }
+                return match(wall) ? own.concat([wall]) : own
+            }
+            const walls = Themes.wallpapers.filter(p => q === "" || p.split("/").pop().toLowerCase().indexOf(q) !== -1).map(p => ({ path: p }))
+            // the last card adds a picture (file chooser); not while filtering
+            return q === "" ? walls.concat([{ path: "", add: true }]) : walls
         }
         // the catalogue is re-read on open; until it lands, land on the current item
         property bool snapToCurrent: false
@@ -48,9 +56,14 @@ Variants {
         // the palette for the selection; on open always fresh (settings or the
         // theme may have changed since the picker was last shown)
         function askPreview(fresh) {
-            if (themeMode || !selPath) return
+            // the theme picker's "From wallpaper" card before its first use: the wallpaper on screen
+            if (themeMode) { if (!Themes.themes.find(t => t.id === "wallpaper") && Wallpaper.file) WallTheme.want(Wallpaper.file, 0); return }
+            if (!selPath) return
             if (fresh) WallTheme.preview = null
-            WallTheme.want(selPath, selIsCurrent && WallTheme.on ? WallTheme.accent : 0)
+            // computed here, not from selIsCurrent: in a change handler that
+            // binding can still hold the previous picture's answer
+            const current = selPath === Wallpaper.file
+            WallTheme.want(selPath, current && WallTheme.on ? WallTheme.accent : 0)
         }
         onFilterChanged: if (filter !== "") snapToCurrent = false
 
@@ -66,7 +79,9 @@ Variants {
 
         function activate() {
             const it = items[selected]; if (!it) return
-            if (themeMode) Themes.apply(it.id)
+            if (themeMode && it.virtual) { WallTheme.apply(Wallpaper.file, 0); Themes.close() }
+            else if (themeMode) Themes.apply(it.id)
+            else if (it.add) WallTheme.addImage()
             else if (WallTheme.on) { WallTheme.apply(it.path); Themes.close() }
             else Themes.applyWallpaper(it.path)
         }
@@ -158,9 +173,52 @@ Variants {
                                 y: (parent.height - height) / 2
                                 Loader {
                                     anchors.fill: parent
-                                    sourceComponent: win.themeMode ? themePreview : wallPreview
+                                    sourceComponent: win.themeMode ? themePreview : cell.modelData.add ? addTile : wallPreview
                                 }
-                                Component { id: themePreview; ThemePreview { theme: cell.modelData } }
+                                // colours on: the selected picture, as the desktop would look
+                                WallMock {
+                                    anchors.fill: parent
+                                    visible: !win.themeMode && cell.sel && WallTheme.on && !cell.modelData.add
+                                    colors: visible && WallTheme.preview && WallTheme.previewPath === cell.modelData.path ? WallTheme.preview.colors : null
+                                }
+                                Component {
+                                    id: addTile
+                                    Rectangle {
+                                        color: Theme.c.bg1
+                                        // a dashed outline in the accent, inset, with rounded corners
+                                        Canvas {
+                                            id: dash
+                                            anchors.fill: parent; anchors.margins: 22
+                                            onPaint: {
+                                                const g = getContext("2d"); g.reset()
+                                                g.setLineDash([10, 7]); g.lineWidth = 2
+                                                g.strokeStyle = Theme.alpha(Theme.c.accentBright, 0.55)
+                                                const r = Math.max(4, Theme.radius * 2)
+                                                g.beginPath(); g.roundedRect(1, 1, width - 2, height - 2, r, r); g.stroke()
+                                            }
+                                            Connections { target: Theme; function onCChanged() { dash.requestPaint() } }
+                                        }
+                                        Column {
+                                            anchors.centerIn: parent
+                                            spacing: 12
+                                            Rectangle {
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                width: 72; height: 72; radius: 36
+                                                color: Theme.alpha(Theme.c.accentBright, 0.14)
+                                                Icon { anchors.centerIn: parent; icon: "add_photo_alternate"; size: Theme.fs(34); color: Theme.c.accentBright }
+                                            }
+                                            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Add a picture"; font.pixelSize: Theme.fs(18); font.weight: Font.DemiBold; color: Theme.c.fg }
+                                            Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Choose a file, or drop one anywhere here"; font.pixelSize: Theme.fs(12); color: Theme.c.accentLight }
+                                            Label { anchors.horizontalCenter: parent.horizontalCenter
+                                                    text: "It's copied into " + (WallTheme.folder || "~/Pictures/Wallpapers").replace(Quickshell.env("HOME"), "~")
+                                                    font.pixelSize: Theme.fs(11); color: Theme.c.accentMid }
+                                        }
+                                    }
+                                }
+                                Component { id: themePreview
+                                            Loader { sourceComponent: cell.modelData.id === "wallpaper" ? wallCard : plainTheme
+                                                     Component { id: plainTheme; ThemePreview { theme: cell.modelData } }
+                                                     Component { id: wallCard; WallThemeCard { theme: cell.modelData } } } }
                                 Component {
                                     id: wallPreview
                                     Image {
@@ -186,6 +244,35 @@ Variants {
                 }
             }
 
+            // themes: which one this is (the cards alone never said)
+            Row {
+                id: caption
+                visible: win.themeMode
+                readonly property var it: win.items[win.selected] || null
+                anchors.top: carousel.bottom; anchors.topMargin: 18
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 10
+                height: 26
+                Label { anchors.verticalCenter: parent.verticalCenter; text: (caption.it && caption.it.name) || ""
+                        font.pixelSize: Theme.fs(15); font.weight: Font.DemiBold; color: Theme.c.fg }
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: !!caption.it
+                    width: modeL.width + 16; height: 20; radius: 10
+                    color: Theme.c.bg2; border.width: 1; border.color: Theme.c.border
+                    Label { id: modeL; anchors.centerIn: parent; font.pixelSize: Theme.fs(10.5); color: Theme.c.accentLight
+                            text: !caption.it ? "" : caption.it.id === "wallpaper" ? "Follows your wallpaper"
+                                  : caption.it.mode === "light" ? "Light" : "Dark" }
+                }
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: !!caption.it && !!caption.it.current
+                    spacing: 5
+                    Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 6; height: 6; radius: 3; color: Theme.c.accentBright }
+                    Label { text: "In use"; font.pixelSize: Theme.fs(11); color: Theme.c.accentMid }
+                }
+            }
+
             // wallpapers: colours from the wallpaper
             WallOptions {
                 id: opts
@@ -199,10 +286,15 @@ Variants {
 
             // an image file dropped from a file manager: into your folder, and selected
             DropArea {
+                id: drop
                 anchors.fill: parent
                 enabled: !win.themeMode
                 keys: ["text/uri-list"]
+                property bool over: false
+                onEntered: over = true
+                onExited: over = false
                 onDropped: (drop) => {
+                    over = false
                     for (const u of drop.urls) {
                         const p = decodeURIComponent(u.toString().replace(/^file:\/\//, ""))
                         if (/\.(png|jpe?g|webp)$/i.test(p)) { WallTheme.importImage(p); break }
@@ -210,10 +302,25 @@ Variants {
                 }
             }
 
+            // a picture being dragged over the picker: where it will go
+            Rectangle {
+                anchors.fill: parent
+                visible: drop.over
+                color: Theme.alpha(Theme.c.bg0, 0.6)
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 10
+                    Icon { anchors.horizontalCenter: parent.horizontalCenter; icon: "add_photo_alternate"; size: Theme.fs(40); color: Theme.c.accentBright }
+                    Label { anchors.horizontalCenter: parent.horizontalCenter; text: "Drop the picture to add it"; font.pixelSize: Theme.fs(16); color: Theme.c.fg }
+                    Label { anchors.horizontalCenter: parent.horizontalCenter; text: "It's copied into " + (WallTheme.folder || "~/Pictures/Wallpapers").replace(Quickshell.env("HOME"), "~")
+                            font.pixelSize: Theme.fs(11); color: Theme.c.accentMid }
+                }
+            }
+
             // only the filter shows while you type
             Label {
                 visible: win.filter !== ""
-                anchors.top: win.themeMode ? carousel.bottom : opts.bottom; anchors.topMargin: 18
+                anchors.top: win.themeMode ? caption.bottom : opts.bottom; anchors.topMargin: 18
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "\u{f0349}  " + win.filter
                 font.pixelSize: Theme.fs(13); color: Theme.c.fg

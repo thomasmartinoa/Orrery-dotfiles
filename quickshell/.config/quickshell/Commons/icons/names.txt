@@ -165,3 +165,6 @@ ac_unit
 add_circle
 delete
 add_photo_alternate
+blur_on
+blur_off
+lens_blur

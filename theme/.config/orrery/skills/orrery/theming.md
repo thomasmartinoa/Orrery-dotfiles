@@ -307,9 +307,15 @@ before (`~/.local/state/orrery/wallpaper-theme.json` remembers it and the settin
   --theme <dir>` checks a generated theme the same way as the shipped ones.
 - matugen runs on a cached 256 px copy (`~/.cache/orrery/wallpaper-theme/`): ~0.1–0.5 s a
   picture; the theme switch after it is the usual ~3 s.
-- The picker (`Picker/WallOptions.qml`, `Services/WallTheme.qml`): the switch, Auto/Dark/Light,
-  Soft/Faithful/Vivid, the accent swatches and a palette chip for the selected picture;
-  Ctrl+T/M/S/1–4/O; dropping an image file adds it. Thunar: right-click a picture >
+- The theme is named "From wallpaper" (`WallTheme.on` = `Theme.name === "From wallpaper"`;
+  its id stays `wallpaper`).
+- The picker (`Picker/WallOptions.qml`, `Services/WallTheme.qml`): off, only the switch;
+  on, Auto/Dark/Light, Soft/Faithful/Vivid, the accent swatches (the accent each choice
+  gives) and a palette chip slide open, and `Picker/WallMock.qml` draws the bar and a panel
+  in the selected picture's palette over it. The last card adds a picture (zenity); a file
+  dragged over the picker shows where it goes. Ctrl+T/M/S/1–4/O. `orrery-wall-theme apply`
+  calls `qs ipc call walltheme working|done`, which shows "Applying colours…" in the OSD
+  (`Osd.colours()`), whatever started it. The menu row shows `WallTheme.label`. Thunar: right-click a picture >
   "Set as wallpaper" (`orrery-wall-theme use`, installed into `uca.xml` by install.sh).
 
 ## Aether (the Omarchy theming app) as a palette source

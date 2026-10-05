@@ -2,3 +2,5 @@ module Picker
 ImagePicker 1.0 ImagePicker.qml
 ThemePreview 1.0 ThemePreview.qml
 WallOptions 1.0 WallOptions.qml
+WallMock 1.0 WallMock.qml
+WallThemeCard 1.0 WallThemeCard.qml

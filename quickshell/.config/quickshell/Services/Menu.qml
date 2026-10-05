@@ -77,6 +77,7 @@ Singleton {
         case "light":     return Theme.light
         case "wallpaper": return (data.state && data.state.wallpaper) || ""
         case "walltheme": return WallTheme.on
+        case "walltheme.label": return WallTheme.label
         case "bar.pill":  return Theme.barStyle === "pill"
         case "bar.floating": return Theme.barStyle === "floating"
         case "bar.minimal": return Theme.barStyle === "minimal"

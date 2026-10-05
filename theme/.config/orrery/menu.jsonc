@@ -19,7 +19,7 @@
   // append). Whole-line // comments only.
 
   "apps": {"icon":"apps","label":"Apps","description":"launcher applications","action":"qs ipc call launcher toggle"},
-  "appearance": {"icon":"palette","label":"Appearance","description":"style look theme wallpaper bar dock font corners border"},
+  "appearance": {"icon":"palette","label":"Appearance","description":"style look theme wallpaper bar dock font corners border blur transparency opacity"},
   "toggle": {"icon":"toggle_on","label":"Quick toggles","description":"switches on off"},
   "devices": {"icon":"devices","label":"Devices","description":"hardware wifi bluetooth sound monitors"},
   "settings": {"icon":"settings","label":"Settings","description":"setup config defaults"},
@@ -32,7 +32,7 @@
   // Appearance
   "appearance.theme": {"icon":"palette","label":"Theme","value":"theme","action":"orrery-theme-menu theme"},
   "appearance.wallpaper": {"icon":"wallpaper","label":"Wallpaper","value":"wallpaper","action":"orrery-theme-menu wallpaper"},
-  "appearance.walltheme": {"icon":"palette","label":"Colours from wallpaper","description":"material you matugen palette picture accent auto theme","checked":"walltheme","action":"orrery-wall-theme toggle","keep":true},
+  "appearance.walltheme": {"icon":"palette","label":"Colours from wallpaper","description":"material you matugen palette picture accent auto theme","value":"walltheme.label","action":"orrery-wall-theme toggle","keep":true},
   "appearance.walladd": {"icon":"add_photo_alternate","label":"Add a wallpaper…","description":"image picture file import","action":"qs ipc call walltheme add"},
   "appearance.bar": {"icon":"toolbar","label":"Bar"},
   "appearance.bar.style": {"icon":"toolbar","label":"Style","description":"skin legacy floating minimal","value":"bar.style"},
@@ -91,6 +91,21 @@
   "appearance.shape.border.3": {"icon":"line_weight","label":"3 px","checked":"border:3","action":"orrery-border width 3","keep":true},
   "appearance.shape.border.4": {"icon":"line_weight","label":"4 px","checked":"border:4","action":"orrery-border width 4","keep":true},
   "appearance.shape.reset": {"icon":"restart_alt","label":"Reset to default","description":"4 px corners 1 px border","action":"orrery-border reset","keep":true},
+  "appearance.glass": {"icon":"blur_on","label":"Blur & transparency","description":"blur glass frosted translucent opacity transparency windows see-through","value":"glassLabel"},
+  "appearance.glass.blur": {"icon":"blur_on","label":"Blur","description":"blur behind windows bar panels menus on off","checked":"blur","action":"orrery-look blur toggle","keep":true},
+  "appearance.glass.strength": {"icon":"lens_blur","label":"Blur strength","description":"blur amount size","value":"blurLabel"},
+  "appearance.glass.strength.light": {"icon":"lens_blur","label":"Light","checked":"blurLevel:light","action":"orrery-look blur light","keep":true},
+  "appearance.glass.strength.medium": {"icon":"lens_blur","label":"Medium  (default)","checked":"blurLevel:medium","action":"orrery-look blur medium","keep":true},
+  "appearance.glass.strength.strong": {"icon":"lens_blur","label":"Strong","checked":"blurLevel:strong","action":"orrery-look blur strong","keep":true},
+  "appearance.glass.opacity": {"icon":"opacity","label":"Window transparency","description":"opacity see-through windows","value":"opacityLabel"},
+  "appearance.glass.opacity.100": {"icon":"opacity","label":"Opaque","checked":"opacityLevel:100","action":"orrery-look opacity 100","keep":true},
+  "appearance.glass.opacity.95": {"icon":"opacity","label":"Slight  (95%)","checked":"opacityLevel:95","action":"orrery-look opacity 95","keep":true},
+  "appearance.glass.opacity.90": {"icon":"opacity","label":"Medium  (90%, default)","checked":"opacityLevel:90","action":"orrery-look opacity 90","keep":true},
+  "appearance.glass.opacity.80": {"icon":"opacity","label":"Strong  (80%)","checked":"opacityLevel:80","action":"orrery-look opacity 80","keep":true},
+  "appearance.glass.opacity.70": {"icon":"opacity","label":"Glass  (70%)","checked":"opacityLevel:70","action":"orrery-look opacity 70","keep":true},
+  "appearance.glass.bar": {"icon":"toolbar","label":"Transparent bar","description":"bar see-through floating minimal","checked":"bar.transparent","action":"qs ipc call bar transparent","keep":true},
+  "appearance.glass.dock": {"icon":"dock_to_bottom","label":"Transparent dock","description":"dock see-through","checked":"dock.transparent","action":"qs ipc call dock transparent","keep":true},
+  "appearance.glass.reset": {"icon":"restart_alt","label":"Reset to default","description":"blur medium 90 percent","action":"orrery-look reset","keep":true},
   "appearance.look": {"icon":"tune","label":"Edit look & feel","description":"gaps borders blur rounding shadows animations","action":"orrery-edit ~/.config/hypr/modules/decorations.lua"},
 
   // Quick toggles (SUPER+CTRL+O opens this page)
