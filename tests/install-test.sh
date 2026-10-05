@@ -103,6 +103,10 @@ check "  and the mode you chose"                      grep -q 'mode = "light"' "
 run "accent 2 for one picture" "$WT" apply "$cas" --accent 2
 run "another picture" "$WT" apply ~/Pictures/Wallpapers/outside.jpg
 check "  the first keeps its accent"                  bash -c "$WT apply '$cas' | python3 -c 'import json,sys; assert json.load(sys.stdin)[\"accent\"] == 2'"
+run "keep these colours as a theme" "$WT" keep "Kept Test"
+check "  it's a theme with its picture"            test -f "$THEMES/kept-test/backgrounds/1-kept-test.jpg"
+run "  it passes the theme checks" python3 "$REPO/tests/check.py" --theme "$THEMES/kept-test"
+run "  and can be applied" ~/.local/bin/orrery-theme set kept-test
 run "off again" "$WT" off
 section "Blur and transparency"
 LL=~/.config/hypr/modules/look.local.lua

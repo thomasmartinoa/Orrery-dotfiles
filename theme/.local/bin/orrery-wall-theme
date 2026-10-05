@@ -5,6 +5,10 @@
                                   colour everything from IMAGE (default: the current wallpaper)
     orrery-wall-theme on          turn it on with your last picture (or your folder's first)
     orrery-wall-theme config [--mode …] [--style …]   remember settings (re-applies when on)
+    orrery-wall-theme keep [NAME] save these colours as a theme of your own (with the
+                                  picture), in the theme picker from then on
+    orrery-wall-theme keep --ask  the same, asking for the name (the picker, the menu)
+    orrery-wall-theme suggest     a name for `keep` (the accent's colour)
     orrery-wall-theme off         back to the theme you used before
     orrery-wall-theme toggle      on (from the current wallpaper) or off
     orrery-wall-theme use IMAGE   set IMAGE as the wallpaper, copied into your folder
@@ -63,6 +67,9 @@ FOLDERS = [(0, "red"), (18, "deeporange"), (32, "orange"), (50, "yellow"), (105,
 
 def die(msg):
     print(f"orrery-wall-theme: {msg}", file=sys.stderr)
+    # asked from the picker or the menu: say it where it can be seen
+    if "--ask" in sys.argv and shutil.which("notify-send"):
+        subprocess.run(["notify-send", "-a", "Orrery", "Couldn't save the theme", msg], check=False)
     sys.exit(1)
 
 
@@ -462,6 +469,81 @@ def cmd_use(args):
         subprocess.run([str(BIN / "orrery-wall"), "set", img], check=False)
 
 
+HUE_NAMES = [(0, "Rose"), (15, "Coral"), (30, "Amber"), (48, "Gold"), (70, "Olive"), (110, "Moss"),
+             (150, "Jade"), (175, "Teal"), (195, "Lagoon"), (215, "Azure"), (235, "Indigo"),
+             (260, "Iris"), (285, "Violet"), (310, "Orchid"), (335, "Blush"), (360, "Rose")]
+
+
+def slug(name):
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def suggest():
+    """A free name from the accent: "Teal", "Teal 2"…; a grey palette is "Graphite"/"Mist"."""
+    try:
+        conf = (THEME / "colors.toml").read_text()
+    except OSError:
+        die("no colours from wallpaper yet: turn it on first")
+    m = re.search(r'^accent_bright\s*=\s*"(#[0-9a-fA-F]{6})"', conf, re.M)
+    dark = 'mode = "dark"' in conf
+    if 'hued = false' in conf or not m:
+        base = "Graphite" if dark else "Mist"
+    else:
+        h, sat = hue_sat(m.group(1))
+        base = min(HUE_NAMES, key=lambda x: abs(x[0] - h))[1] if sat >= 0.15 else ("Graphite" if dark else "Mist")
+        base += " Night" if dark else " Day"
+    name, n = base, 2
+    while (ORRERY / "themes" / slug(name)).exists():
+        name, n = f"{base} {n}", n + 1
+    return name
+
+
+def cmd_keep(args):
+    """themes/wallpaper -> themes/<name>: the same colours with a picture of
+    their own, so it stays as it is whatever the wallpaper does next."""
+    if not (THEME / "colors.toml").is_file():
+        die("no colours from wallpaper yet: turn it on first")
+    ask = "--ask" in args
+    args = [a for a in args if a != "--ask"]
+    name = " ".join(args).strip() or suggest()
+    if ask:
+        if not shutil.which("zenity"):
+            die("zenity is not installed: give the name, orrery-wall-theme keep NAME")
+        r = run("zenity", "--entry", "--title=Save these colours as a theme",
+                "--text=Name for the new theme:", f"--entry-text={name}", check=False)
+        if r.returncode != 0 or not r.stdout.strip():
+            return                                        # cancelled
+        name = r.stdout.strip()
+    sid = slug(name)
+    if not sid or sid in ("wallpaper",):
+        die(f"pick another name than '{name}'")
+    dest = ORRERY / "themes" / sid
+    if dest.exists():
+        die(f"a theme called '{sid}' exists already: pick another name")
+    conf = (THEME / "colors.toml").read_text()
+    # the picture the colours came from: a theme needs its own wallpaper
+    st = load_state()
+    try:
+        remembered = (HOME / ".local/state/orrery/background.wallpaper").read_text().strip()
+    except OSError:
+        remembered = ""
+    src_img = next((p for p in (st.get("picture", ""), remembered) if p and Path(p).is_file()), "")
+    if not src_img:
+        die("the picture these colours came from is gone: pick a picture first, then keep it")
+    # an ordinary theme now: its own name, no "generated" header
+    conf = re.sub(r"\A(#[^\n]*\n)+\n?", "", conf)
+    conf = re.sub(r'^name = ".*"$', f'name = "{name}"', conf, count=1, flags=re.M)
+    head = f"# {name}: colours made from a picture by orrery-wall-theme, kept as a theme.\n# Yours to edit (orrery-theme reload applies a change).\n\n"
+    dest.mkdir(parents=True)
+    (dest / "colors.toml").write_text(head + conf)
+    (dest / "backgrounds").mkdir()
+    shutil.copy2(src_img, dest / "backgrounds" / ("1-" + sid + Path(src_img).suffix.lower()))
+    print(json.dumps({"id": sid, "name": name}))
+    if ask and shutil.which("notify-send"):
+        run("notify-send", "-a", "Orrery", f"Saved as “{name}”",
+            "It's in the theme picker now (SUPER+CTRL+SHIFT+SPACE).", check=False)
+
+
 def cmd_preview(args):
     st = load_state()
     o, rest, _ = options(args, st)
@@ -492,6 +574,10 @@ def main():
         cmd_on(args)
     elif cmd == "config":
         cmd_config(args)
+    elif cmd == "keep":
+        cmd_keep(args)
+    elif cmd == "suggest":
+        print(suggest())
     elif cmd == "toggle":
         cmd_toggle(args)
     elif cmd == "use":

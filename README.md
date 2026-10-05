@@ -45,7 +45,8 @@ Four themes ship with it: **Eclipse** (dark greys), **Zenith** (the same on whit
 - **One palette, every app**, dark or light. Most apps follow a theme switch instantly.
 - **Colours from your wallpaper**: pick any picture and the whole desktop takes its colours,
   dark or light to suit it, with your choice of style and accent (Menu › Appearance, or the
-  wallpaper picker, `SUPER` `SHIFT` `W`). The four built-in themes stay as they are.
+  wallpaper picker, `SUPER` `SHIFT` `W`). Like a palette? Save it as a theme of your own.
+  The four built-in themes stay as they are.
 - **A shell built on [Quickshell](https://quickshell.org/)**: a bar in three styles on any screen
   edge, a dock, panels for sound, Wi-Fi, Bluetooth, power, notifications and media, a lock
   screen and a power menu.

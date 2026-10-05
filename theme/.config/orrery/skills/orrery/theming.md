@@ -300,6 +300,10 @@ before (`~/.local/state/orrery/wallpaper-theme.json` remembers it and the settin
   user didn't pick (with no pictures of their own, the shell opens the file chooser).
   Applies run `orrery-theme set` with `ORRERY_WALL_THEME=1`: no "Theme: …" notification,
   the OSD notice says it.
+- `keep [NAME]` (`--ask`: a zenity name prompt, used by the picker's "Save as theme" and
+  the menu) copies the generated palette into `themes/<slug>/` with the picture copied into
+  its `backgrounds/`: an ordinary user theme (gitignored), named from the accent by
+  default ("Teal Night"). It refuses when the picture is gone.
 - `--mode auto` decides by brightness (ffmpeg YAVG ≥ 150 light, ≤ 110 dark, else the mode on
   screen); `--style soft|faithful|vivid` = matugen `scheme-tonal-spot|content|vibrant`;
   `--accent N` picks among the picture's main colours (`preview` lists the accent each

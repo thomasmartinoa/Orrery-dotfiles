@@ -8,8 +8,8 @@
 # (SUPER+CTRL+SHIFT+SPACE) shows that picture instead of a drawn mock.
 #
 # Nothing personal ends up in it: fastfetch runs a trimmed config (no user,
-# host or IP), Thunar opens a demo folder, not your home, and the bar hides
-# what is playing.
+# host or IP), btop watches the loopback interface (no local address),
+# Thunar opens a demo folder, not your home, and the bar hides what is playing.
 set -u
 die() { echo "orrery-theme-preview: $*" >&2; exit 1; }
 [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] || die "run it inside Hyprland"
@@ -88,7 +88,13 @@ rule hp-th "class = '^[Tt]hunar\$'" '"monitor_w * 0.40", "monitor_h * 0.74"' '"m
 
 hyprctl dispatch "hl.dsp.focus({ workspace = $ws })" >/dev/null
 kitty --title hp-ff -o remember_window_size=no -o window_margin_width=10 -e sh -c "clear; fastfetch -c '$tmp/fastfetch.jsonc'; sleep 60" >/dev/null 2>&1 & pids+=($!)
-kitty --title hp-bt -o remember_window_size=no -o window_margin_width=4 -o font_size=7 -e btop -p 2 >/dev/null 2>&1 & pids+=($!)
+# btop on a copy of your config set to the loopback interface: its network
+# box shows 127.0.0.1, not your local address
+btconf="$tmp/btop.conf"
+if [[ -f $HOME/.config/btop/btop.conf ]]; then cp "$HOME/.config/btop/btop.conf" "$btconf"; else btop --default-config > "$btconf" 2>/dev/null; fi
+sed -i 's/^net_iface *=.*/net_iface = "lo"/' "$btconf"
+grep -q '^net_iface' "$btconf" || echo 'net_iface = "lo"' >> "$btconf"
+kitty --title hp-bt -o remember_window_size=no -o window_margin_width=4 -o font_size=7 -e btop -c "$btconf" --themes-dir "$HOME/.config/btop/themes" -p 2 >/dev/null 2>&1 & pids+=($!)
 command -v thunar >/dev/null && command -v dbus-run-session >/dev/null && {
     HOME="$tmp/home" XDG_CONFIG_HOME="$tmp/config" dbus-run-session -- thunar "$tmp/home" >/dev/null 2>&1 & pids+=($!); }
 sleep 4

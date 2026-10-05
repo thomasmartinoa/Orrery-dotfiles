@@ -52,6 +52,8 @@ Singleton {
         else addImage()
     }
     function turnOff() { Quickshell.execDetached([bin, "off"]) }
+    // these colours, as a theme of your own (asks the name)
+    function keep() { Quickshell.execDetached([bin, "keep", "--ask"]) }
 
     // the picker asks for a picture's palette; the last ask wins
     function want(path, accentIndex) {
@@ -135,6 +137,7 @@ Singleton {
         function apply(path: string): void { root.apply(path) }
         function on(): void { root.turnOn("") }
         function off(): void { root.turnOff() }
+        function keep(): void { root.keep() }
         function add(): void { root.addImage() }
         // orrery-wall-theme, around an apply (any route: picker, menu, Thunar, CLI)
         function working(): void { root.busy = true; Osd.colours(true) }
