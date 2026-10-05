@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="Screenshots/cover.png" alt="Orrery: a Hyprland desktop where everything orbits one palette" width="100%">
+<img src="Screenshots/cover.png" alt="Orrery, with its four themes" width="100%">
 
 **A complete, themeable Hyprland desktop for Arch Linux.**<br>
 Switch the theme and everything follows: the shell, terminals, GTK and Qt apps, Neovim,
