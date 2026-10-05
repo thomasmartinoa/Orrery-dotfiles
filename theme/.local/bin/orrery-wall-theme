@@ -1,0 +1,450 @@
+#!/usr/bin/env python3
+"""orrery-wall-theme: colours from your wallpaper (the "Wallpaper" theme).
+
+    orrery-wall-theme apply [IMAGE] [--mode auto|dark|light] [--style soft|faithful|vivid] [--accent N]
+                                  colour everything from IMAGE (default: the current wallpaper)
+    orrery-wall-theme off         back to the theme you used before
+    orrery-wall-theme toggle      on (from the current wallpaper) or off
+    orrery-wall-theme use IMAGE   set IMAGE as the wallpaper, copied into your folder
+                                  (re-colours too when it's on; Thunar's "Set as wallpaper")
+    orrery-wall-theme preview IMAGE [options]   the palette as JSON, nothing applied (the picker)
+    orrery-wall-theme import IMAGE              copy IMAGE into your wallpapers folder, print its path
+    orrery-wall-theme list        your wallpapers folder, as JSON
+    orrery-wall-theme status      on/off and the settings, as JSON
+
+Colours come from matugen (Material You): every palette keeps its text readable,
+whatever the picture. They are written as an ordinary theme,
+~/.config/orrery/themes/wallpaper/colors.toml, and applied with `orrery-theme set
+wallpaper`, so everything that follows a theme follows this one. Its wallpapers
+are your folder (~/Pictures/Wallpapers): picking one there, or SUPER+CTRL+SPACE,
+re-colours. An image from anywhere else is copied into it first (never moved).
+
+  --mode    auto: light for a bright picture, dark otherwise (the default)
+  --style   soft (Material's own), faithful (closer to the picture's colours), vivid
+  --accent  which of the picture's main colours leads, 0 = matugen's first choice
+Options you give are remembered for the next wallpaper. A black-and-white
+picture gets a grey theme, like Eclipse and Zenith.
+"""
+
+import colorsys
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+HOME = Path.home()
+ORRERY = HOME / ".config/orrery"
+THEME = ORRERY / "themes/wallpaper"
+STATE = HOME / ".local/state/orrery/wallpaper-theme.json"
+CACHE = Path(os.environ.get("XDG_CACHE_HOME", HOME / ".cache")) / "orrery/wallpaper-theme"
+BIN = Path(__file__).resolve().parent
+IMAGES = (".png", ".jpg", ".jpeg", ".webp")
+STYLES = {"soft": "scheme-tonal-spot", "faithful": "scheme-content", "vivid": "scheme-vibrant"}
+DEFAULTS = {"mode": "auto", "style": "soft", "accent": 0, "previous": ""}
+# the hues every theme has (terminal, git, warnings), pulled towards the picture's colour
+HUES = {"red": "#e06c75", "orange": "#e5995c", "yellow": "#e5c07b", "green": "#98c379",
+        "aqua": "#56b6c2", "blue": "#61afef", "purple": "#c678dd"}
+# ...and for a black-and-white picture, left as they are (Eclipse's)
+MONO_HUES = {"red": "#e06c75", "orange": "#d19a66", "yellow": "#e5c07b", "green": "#98c379",
+             "aqua": "#56b6c2", "blue": "#61afef", "purple": "#c678dd"}
+# Papirus folder colours by hue, for the icon theme
+FOLDERS = [(0, "red"), (18, "deeporange"), (32, "orange"), (50, "yellow"), (105, "green"), (168, "teal"),
+           (188, "cyan"), (215, "blue"), (232, "indigo"), (265, "violet"), (300, "magenta"), (335, "pink"), (360, "red")]
+
+
+def die(msg):
+    print(f"orrery-wall-theme: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def run(*cmd, check=True):
+    return subprocess.run(cmd, capture_output=True, text=True, check=check)
+
+
+# ------------------------------------------------------------------ state --
+def load_state():
+    try:
+        return {**DEFAULTS, **json.loads(STATE.read_text())}
+    except (OSError, ValueError):
+        return dict(DEFAULTS)
+
+
+def save_state(s):
+    STATE.parent.mkdir(parents=True, exist_ok=True)
+    STATE.write_text(json.dumps(s, indent=2) + "\n")
+
+
+def current_theme():
+    try:
+        return (ORRERY / "current/theme.name").read_text().strip()
+    except OSError:
+        return ""
+
+
+def current_wallpaper():
+    p = ORRERY / "current/background"
+    return str(p.resolve()) if p.exists() else ""
+
+
+# --------------------------------------------------------------- the folder --
+def folder():
+    """~/Pictures/Wallpapers (XDG's Pictures folder, wherever that is)."""
+    pics = ""
+    if shutil.which("xdg-user-dir"):
+        pics = run("xdg-user-dir", "PICTURES", check=False).stdout.strip()
+    if not pics or Path(pics) == HOME:
+        pics = str(HOME / "Pictures")
+    return Path(pics) / "Wallpapers"
+
+
+def images_in(d):
+    return sorted(str(p) for p in Path(d).iterdir() if p.is_file() and p.suffix.lower() in IMAGES) if Path(d).is_dir() else []
+
+
+def import_image(img):
+    """IMAGE inside the folder (or any theme's backgrounds): its own path.
+    Anywhere else: a copy in the folder, under its name (a different file
+    with the same name gets a short suffix; the same file is reused)."""
+    src = Path(img).expanduser().resolve()
+    if not src.is_file() or src.suffix.lower() not in IMAGES:
+        die(f"not an image (png, jpg, webp): {img}")
+    dest = folder()
+    if dest.resolve() in src.parents or ORRERY.resolve() / "themes" in src.parents:
+        return str(src)
+    dest.mkdir(parents=True, exist_ok=True)
+    data = src.read_bytes()
+    target = dest / src.name
+    if target.exists():
+        if target.read_bytes() == data:
+            return str(target)
+        target = dest / f"{src.stem}-{hashlib.sha1(data).hexdigest()[:6]}{src.suffix}"
+    shutil.copy2(src, target)
+    return str(target)
+
+
+# ------------------------------------------------------------------ colour --
+def rgb(h):
+    h = h.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
+
+def hexc(r, g, b):
+    return "#" + "".join(f"{round(max(0, min(1, c)) * 255):02x}" for c in (r, g, b))
+
+
+def mix(a, b, t):
+    return hexc(*(x + (y - x) * t for x, y in zip(rgb(a), rgb(b))))
+
+
+def hue_sat(h):
+    hh, ll, ss = colorsys.rgb_to_hls(*rgb(h))
+    return hh * 360, ss
+
+
+def brightness(img):
+    """Average luma 0-255 (ffmpeg, which the rice installs), or None."""
+    if not shutil.which("ffmpeg"):
+        return None
+    r = run("ffmpeg", "-v", "error", "-i", img, "-vf", "scale=128:-1,format=yuv444p,signalstats,metadata=mode=print:file=-",
+            "-frames:v", "1", "-f", "null", "-", check=False)
+    m = re.search(r"YAVG=([0-9.]+)", r.stdout)
+    return float(m.group(1)) if m else None
+
+
+def resolve_mode(img, want):
+    if want in ("dark", "light"):
+        return want
+    y = brightness(img)
+    if y is None:
+        return "dark"
+    if y >= 150:
+        return "light"
+    if y <= 110:
+        return "dark"
+    # in between: keep what's on screen now
+    try:
+        return json.loads((ORRERY / "current/colors.json").read_text()).get("mode", "dark")
+    except (OSError, ValueError):
+        return "dark"
+
+
+# ----------------------------------------------------------------- matugen --
+def matugen_config():
+    CACHE.mkdir(parents=True, exist_ok=True)
+    cfg = CACHE / "matugen.toml"
+    body = "[config]\nversion_check = false\n\n[config.custom_colors]\n"
+    body += "".join(f'{k} = {{ color = "{v}", blend = true }}\n' for k, v in HUES.items())
+    body += "\n[templates]\n"
+    if not cfg.exists() or cfg.read_text() != body:
+        cfg.write_text(body)
+    return str(cfg)
+
+
+def small(img):
+    """A 256 px copy (cached): matugen shrinks the picture before it looks at
+    the colours anyway, and decoding a 4K WebP six times was seconds."""
+    st = os.stat(img)
+    key = hashlib.sha1(f"{img}|{st.st_mtime_ns}|{st.st_size}".encode()).hexdigest()
+    out = CACHE / f"{key}.png"
+    if not out.exists() and shutil.which("ffmpeg"):
+        CACHE.mkdir(parents=True, exist_ok=True)
+        tmp = out.with_suffix(".tmp.png")
+        r = run("ffmpeg", "-v", "error", "-y", "-i", img, "-vf", "scale=256:256:force_original_aspect_ratio=decrease",
+                "-frames:v", "1", str(tmp), check=False)
+        if r.returncode == 0:
+            tmp.rename(out)
+    return (str(out) if out.exists() else img), key
+
+
+def matugen(img, mode, scheme, index):
+    exe = shutil.which("matugen")
+    if not exe:
+        die("matugen is not installed (sudo pacman -S matugen)")
+    src, ikey = small(img)
+    key = hashlib.sha1(f"{ikey}|{mode}|{scheme}|{index}".encode()).hexdigest()
+    cached = CACHE / f"{key}.json"
+    if cached.exists():
+        return json.loads(cached.read_text())
+    r = run(exe, "-c", matugen_config(), "image", src, "-m", mode, "-t", scheme, "--dry-run",
+            "-j", "hex", "--source-color-index", str(index), check=False)
+    if r.returncode != 0:
+        return None
+    d = json.loads(r.stdout)
+    out = {"colors": {k: v[mode]["color"] for k, v in d["colors"].items() if mode in v},
+           "palettes": {p: {t: (v["color"] if isinstance(v, dict) else v) for t, v in tones.items()}
+                        for p, tones in d["palettes"].items()}}
+    cached.write_text(json.dumps(out))
+    return out
+
+
+def candidates(img, mode, scheme):
+    """The accent each of the picture's main colours would give (up to 4),
+    matugen's first choice first. The source colours themselves are often
+    near-black (a dark planet, the night sky): the accent is what you see."""
+    out = []   # (accent, matugen's index for it)
+    for i in range(4):
+        d = matugen(img, mode, scheme, i)
+        if not d:
+            break
+        if d["colors"]["primary"] not in [a for a, _ in out]:
+            out.append((d["colors"]["primary"], i))
+    return out
+
+
+def is_mono(img, mode):
+    d = matugen(img, mode, "scheme-smart", 0)
+    if not d:
+        return False
+    r, g, b = rgb(d["colors"]["primary"])
+    return max(r, g, b) - min(r, g, b) < 0.02
+
+
+def palette(img, mode="auto", style="soft", accent=0):
+    mode = resolve_mode(img, mode)
+    mono = is_mono(img, mode)
+    scheme = "scheme-monochrome" if mono else STYLES.get(style, STYLES["soft"])
+    cands = [] if mono else candidates(img, mode, scheme)
+    accent = max(0, min(accent, len(cands) - 1)) if cands else 0
+    index = cands[accent][1] if cands else 0
+    d = matugen(img, mode, scheme, index)
+    if not d:
+        die(f"matugen could not read {img}")
+    c, P = d["colors"], d["palettes"]
+    tone = lambda p, t: P[p][str(t)]
+    dark = mode == "dark"
+    col = {
+        "bg0": c["surface_container_lowest"] if dark else c["surface"],
+        "bg1": c["surface"] if dark else c["surface_container_low"],
+        "bg2": c["surface_container"],
+        "bg3": c["surface_container_high"],
+        "bg4": c["surface_container_highest"],
+        "fg": c["on_surface"],
+        "accent_bright": c["primary"],
+        "accent_light": c["on_surface_variant"],
+        # secondary text needs 4.5:1 and inactive 3:1 on bg0: Material's outline
+        # is 4.3:1 on a light surface, so light themes take a step darker
+        "accent_mid": c["outline"] if dark else tone("neutral_variant", 40),
+        "accent_dim": tone("neutral_variant", 50 if dark else 50),
+        "grey0": tone("neutral", 30 if dark else 80),
+        "grey1": tone("neutral", 50 if dark else 60),
+        "grey2": tone("neutral", 60 if dark else 50),
+    }
+    hues = dict(MONO_HUES) if mono else {k: c[k] for k in HUES}
+    if mono and not dark:   # Eclipse's hues are for dark backgrounds; darken them on white
+        hues = {k: mix(v, "#000000", 0.35) for k, v in hues.items()}
+    col.update(hues)
+    col.update(active=c["primary"], hover=c["tertiary"], warning=hues["yellow"],
+               critical=c["error"] if not mono else hues["red"])
+    return {"mode": mode, "mono": mono, "style": "mono" if mono else style, "accent": accent,
+            "candidates": [a for a, _ in cands], "colors": col, "selection": c["primary_container"] if not mono else c["surface_container_highest"]}
+
+
+def folder_icons(pal):
+    base = "Papirus-Dark" if pal["mode"] == "dark" else "Papirus-Light"
+    if pal["mono"]:
+        return base if pal["mode"] == "dark" else base + "-grey"
+    h, s = hue_sat(pal["colors"]["accent_bright"])
+    if s < 0.15:
+        return base + "-grey"
+    return base + "-" + min(FOLDERS, key=lambda f: abs(f[0] - h))[1]
+
+
+def toml(img, pal):
+    c, dark = pal["colors"], pal["mode"] == "dark"
+    bright = lambda h: mix(h, "#ffffff" if dark else "#000000", 0.25)
+    term = {
+        "background": c["bg0"], "foreground": c["fg"], "cursor": c["accent_bright"],
+        "selection_background": pal["selection"], "selection_foreground": c["fg"],
+        "color0": c["bg3"], "color1": c["red"], "color2": c["green"], "color3": c["yellow"],
+        "color4": c["blue"], "color5": c["purple"], "color6": c["aqua"], "color7": c["accent_light"],
+        "color8": c["grey1"], "color9": bright(c["red"]), "color10": bright(c["green"]),
+        "color11": bright(c["yellow"]), "color12": bright(c["blue"]), "color13": bright(c["purple"]),
+        "color14": bright(c["aqua"]), "color15": c["fg"],
+    }
+    git = {"added": c["green"], "modified": c["yellow"], "deleted": c["red"], "renamed": c["blue"], "conflict": c["orange"]}
+    apps = {"gtk_theme": "adw-gtk3-dark" if dark else "adw-gtk3", "icon_theme": folder_icons(pal),
+            "cursor_theme": "default", "qt_style": "Fusion", "nvim_colorscheme": "aether"}
+    block = lambda name, d: f"[{name}]\n" + "".join(f'{k:<20} = "{v}"\n' for k, v in d.items())
+    head = (f"# GENERATED by orrery-wall-theme from {Path(img).name}: overwritten every time\n"
+            "# the wallpaper changes. To keep a palette, copy this folder to another name.\n\n"
+            f'name = "Wallpaper"\nmode = "{pal["mode"]}"\nhued = {"false" if pal["mono"] else "true"}\n'
+            'bar  = "minimal"\n\n')
+    return head + "\n".join(block(n, d) for n, d in (("colors", c), ("terminal", term), ("git", git), ("apps", apps)))
+
+
+def write_theme(img, pal):
+    THEME.mkdir(parents=True, exist_ok=True)
+    (THEME / "colors.toml").write_text(toml(img, pal))
+    # its wallpapers are your folder: the picker lists them, orrery-wall next cycles them
+    bg = THEME / "backgrounds"
+    want = folder()
+    want.mkdir(parents=True, exist_ok=True)
+    if bg.is_symlink() and bg.resolve() != want.resolve():
+        bg.unlink()
+    if not bg.exists():
+        bg.symlink_to(want)
+    # the picker's card is the live preview of the wallpaper itself
+    for p in THEME.glob("preview.*"):
+        p.unlink()
+
+
+# ---------------------------------------------------------------- commands --
+def options(args, st):
+    o = {"mode": st["mode"], "style": st["style"], "accent": st["accent"]}
+    rest, i = [], 0
+    while i < len(args):
+        a = args[i]
+        if a in ("--mode", "--style", "--accent") and i + 1 < len(args):
+            o[a[2:]] = args[i + 1]; i += 2; continue
+        rest.append(a); i += 1
+    if o["mode"] not in ("auto", "dark", "light"):
+        die("--mode is auto, dark or light")
+    if o["style"] not in STYLES:
+        die("--style is soft, faithful or vivid")
+    try:
+        o["accent"] = int(o["accent"])
+    except ValueError:
+        die("--accent is a number (0 = the picture's main colour)")
+    return o, rest
+
+
+def cmd_apply(args):
+    st = load_state()
+    new_image = bool([a for a in args if not a.startswith("--")])
+    o, rest = options(args, st)
+    img = rest[0] if rest else current_wallpaper()
+    if not img:
+        die("no wallpaper set: give an image")
+    img = import_image(img)
+    # a new picture starts from its own main colour, unless --accent was given
+    if new_image and "--accent" not in args and img != current_wallpaper():
+        o["accent"] = 0
+    pal = palette(img, o["mode"], o["style"], o["accent"])
+    write_theme(img, pal)
+    cur = current_theme()
+    if cur and cur != "wallpaper":
+        st["previous"] = cur
+    st.update(o)
+    save_state(st)
+    # the wallpaper this theme will pick (orrery-wall's per-theme memory)
+    (HOME / ".local/state/orrery").mkdir(parents=True, exist_ok=True)
+    (HOME / ".local/state/orrery/background.wallpaper").write_text(img + "\n")
+    env = {**os.environ, "ORRERY_WALL_THEME": "1"}   # orrery-wall: don't call back into us
+    subprocess.run([str(BIN / "orrery-theme"), "set", "wallpaper"], env=env, check=False, stdout=subprocess.DEVNULL)
+    subprocess.run([str(BIN / "orrery-wall"), "set", img], env=env, check=False)
+    print(json.dumps({"image": img, **{k: pal[k] for k in ("mode", "mono", "style", "accent", "candidates")}}))
+
+
+def cmd_off(_):
+    st = load_state()
+    prev = st.get("previous") or "eclipse"
+    if not (ORRERY / "themes" / prev / "colors.toml").is_file():
+        prev = "eclipse"
+    subprocess.run([str(BIN / "orrery-theme"), "set", prev], check=False)
+
+
+def cmd_toggle(_):
+    if current_theme() == "wallpaper":
+        cmd_off([])
+    else:
+        cmd_apply([])
+
+
+def cmd_use(args):
+    if not args:
+        die("use IMAGE")
+    img = import_image(args[0])
+    if current_theme() == "wallpaper":
+        cmd_apply([img])
+    else:
+        subprocess.run([str(BIN / "orrery-wall"), "set", img], check=False)
+
+
+def cmd_preview(args):
+    st = load_state()
+    o, rest = options(args, st)
+    if not rest:
+        die("preview IMAGE")
+    img = str(Path(rest[0]).expanduser().resolve())
+    pal = palette(img, o["mode"], o["style"], o["accent"])
+    keys = ("bg0", "bg2", "bg4", "fg", "accent_bright", "accent_mid", "hover", "red", "green", "yellow", "blue", "purple")
+    print(json.dumps({**{k: pal[k] for k in ("mode", "mono", "style", "accent", "candidates")},
+                      "colors": {k: pal["colors"][k] for k in keys}}))
+
+
+def cmd_status(_):
+    st = load_state()
+    print(json.dumps({"on": current_theme() == "wallpaper", "folder": str(folder()),
+                      **{k: st[k] for k in ("mode", "style", "accent", "previous")}}))
+
+
+def main():
+    cmd, args = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else ("", [])
+    if cmd == "apply":
+        cmd_apply(args)
+    elif cmd == "off":
+        cmd_off(args)
+    elif cmd == "toggle":
+        cmd_toggle(args)
+    elif cmd == "use":
+        cmd_use(args)
+    elif cmd == "preview":
+        cmd_preview(args)
+    elif cmd == "import" and args:
+        print(import_image(args[0]))
+    elif cmd == "list":
+        print(json.dumps(images_in(folder())))
+    elif cmd == "status":
+        cmd_status(args)
+    else:
+        print(__doc__.strip())
+        sys.exit(0 if cmd in ("-h", "--help") else 1)
+
+
+if __name__ == "__main__":
+    main()

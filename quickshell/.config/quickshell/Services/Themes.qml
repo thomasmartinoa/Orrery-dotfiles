@@ -16,6 +16,7 @@ Singleton {
     // for it, so reopening shows them at once instead of rebuilding them
     property string lastMode: "theme"
 
+    signal moveBy(int by)
     function refresh() { list.running = true }
     function openPicker(mode) { refresh(); lastMode = mode; pickerMode = mode }
     function close() { pickerMode = "" }
@@ -24,11 +25,16 @@ Singleton {
 
     readonly property var current: themes.find(t => t.current) || null
     readonly property var wallpapers: {
-        // the current theme's backgrounds first, then the other themes'
+        // the current theme's backgrounds first, then your wallpapers folder
+        // (the Wallpaper theme's own, already first when it's on), then the
+        // other themes'
         const cur = current ? current.backgrounds : []
-        const rest = []
-        for (const t of themes) if (!t.current) for (const b of t.backgrounds) rest.push(b)
-        return cur.concat(rest)
+        const seen = {}, out = []
+        const add = (p) => { if (!seen[p]) { seen[p] = true; out.push(p) } }
+        cur.forEach(add)
+        WallTheme.images.forEach(add)
+        for (const t of themes) if (!t.current) t.backgrounds.forEach(add)
+        return out
     }
 
     Process {
@@ -52,5 +58,7 @@ Singleton {
         function wallpaper(): void { root.openPicker("wallpaper") }
         function close(): void { root.close() }
         function toggle(mode: string): void { if (root.pickerMode === mode) root.close(); else root.openPicker(mode) }
+        // step the selection (scripts, screenshots): + right, - left
+        function move(by: int): void { root.moveBy(by) }
     }
 }

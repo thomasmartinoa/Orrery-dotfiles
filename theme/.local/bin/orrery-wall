@@ -36,6 +36,11 @@ show() {
 set_wallpaper() {
     local img
     img="$(realpath -e -- "$1" 2>/dev/null)" || die "no such file: $1"
+    # on the Wallpaper theme a new picture re-colours everything (it calls back
+    # here with ORRERY_WALL_THEME set, to change only the picture)
+    if [[ -z ${ORRERY_WALL_THEME:-} && "$(cat "$CURRENT_DIR/theme.name" 2>/dev/null)" == wallpaper ]]; then
+        exec "${BASH_SOURCE[0]%/*}/orrery-wall-theme" apply "$img" >/dev/null
+    fi
     mkdir -p "$CURRENT_DIR" "$STATE"
     ln -nsf "$img" "$LINK"
     # Remember the pick per theme so switching back restores it.
