@@ -10,6 +10,7 @@ VS Code, Firefox, Spotify and the login screen.
 ![Quickshell 0.3](https://img.shields.io/badge/Quickshell-0.3-0d0d0f?style=flat-square)
 ![Arch Linux](https://img.shields.io/badge/Arch-Linux-0d0d0f?style=flat-square&logo=archlinux&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/license-MIT-0d0d0f?style=flat-square)
+[![CI](https://github.com/thomasmartinoa/Orrery-dotfiles/actions/workflows/ci.yml/badge.svg)](https://github.com/thomasmartinoa/Orrery-dotfiles/actions/workflows/ci.yml)
 
 [Install](#install) · [Keybinds](#keybinds) · [Make it yours](#make-it-yours) · [Help](#troubleshooting)
 

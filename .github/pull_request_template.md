@@ -6,5 +6,5 @@
 
 <!-- How you checked it: which themes, bar positions, screens. Screenshots help for anything visual. -->
 
-- [ ] `./install.sh --dry-run` runs clean
+- [ ] `tests/check.py` passes (GitHub also runs a full install test on the pull request)
 - [ ] Nothing personal in the diff (names, paths, wallpapers you don't have the rights to)

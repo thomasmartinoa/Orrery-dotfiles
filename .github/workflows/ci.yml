@@ -1,0 +1,54 @@
+# Tests for every push and pull request, and once a week (Arch moves fast:
+# a package can be renamed or dropped while nothing here changes).
+name: CI
+
+on:
+  push:
+    branches: [main, shell]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Static checks
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Tools
+        run: pacman -Syu --noconfirm --needed git python shellcheck qt6-declarative lua
+      - uses: actions/checkout@v4
+      - name: tests/check.py
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          python3 tests/check.py --strict
+
+  install:
+    name: Install, uninstall, reinstall on fresh Arch
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    needs: checks
+    steps:
+      - name: A user with sudo, like a fresh install
+        run: |
+          pacman -Syu --noconfirm --needed git sudo lua
+          useradd -m tester
+          echo 'tester ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/tester
+      - uses: actions/checkout@v4
+      - name: Clone into the user's home, as the README says
+        run: |
+          cp -a "$GITHUB_WORKSPACE" /home/tester/Orrery-dotfiles
+          chown -R tester:tester /home/tester/Orrery-dotfiles
+      - name: Packages
+        # pacman asks when a dependency has several providers; --noconfirm
+        # takes the default, which install.sh's own pacman call can't do
+        # without a terminal. install.sh then finds them all installed.
+        run: |
+          pkgs=$(sed -n '/^PKGS_REPO=(/,/^)/p' install.sh | sed -e 's/#.*//' -e 's/PKGS_REPO=(//' -e 's/)//' | tr '\n' ' ')
+          pacman -S --noconfirm --needed $pkgs
+      - name: tests/install-test.sh
+        run: sudo -u tester -H bash -c 'cd ~/Orrery-dotfiles && TERM=dumb tests/install-test.sh'
