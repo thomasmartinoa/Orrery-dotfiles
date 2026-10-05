@@ -33,6 +33,7 @@
   "appearance.theme": {"icon":"palette","label":"Theme","value":"theme","action":"orrery-theme-menu theme"},
   "appearance.wallpaper": {"icon":"wallpaper","label":"Wallpaper","value":"wallpaper","action":"orrery-theme-menu wallpaper"},
   "appearance.walltheme": {"icon":"palette","label":"Colours from wallpaper","description":"material you matugen palette picture accent auto theme","value":"walltheme.label","action":"orrery-wall-theme toggle","keep":true},
+  "appearance.wallkeep": {"icon":"style","label":"Save colours as a theme…","description":"keep palette wallpaper colours new theme","when":"walltheme","action":"orrery-wall-theme keep --ask"},
   "appearance.walladd": {"icon":"add_photo_alternate","label":"Add a wallpaper…","description":"image picture file import","action":"qs ipc call walltheme add"},
   "appearance.bar": {"icon":"toolbar","label":"Bar"},
   "appearance.bar.style": {"icon":"toolbar","label":"Style","description":"skin legacy floating minimal","value":"bar.style"},

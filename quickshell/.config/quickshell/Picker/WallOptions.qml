@@ -108,6 +108,29 @@ Rectangle {
             }
         }
 
+        // keep the colours on screen as a theme of your own (the picture on
+        // screen only: those are the colours it saves)
+        Rectangle { width: 1; height: 24; anchors.verticalCenter: parent.verticalCenter; color: Theme.c.border; visible: keep.visible }
+        Rectangle {
+            id: keep
+            visible: bar.isCurrent
+            anchors.verticalCenter: parent.verticalCenter
+            width: keepRow.width + 20; height: 30
+            radius: Theme.radius
+            color: km.containsMouse ? Theme.alpha(Theme.c.accentBright, 0.16) : Theme.c.bg2
+            border.width: 1; border.color: km.containsMouse ? Theme.alpha(Theme.c.accentBright, 0.45) : Theme.c.border
+            Behavior on color { ColorAnimation { duration: Motion.fadeMs } }
+            Row {
+                id: keepRow
+                anchors.centerIn: parent
+                spacing: 6
+                Icon { anchors.verticalCenter: parent.verticalCenter; icon: "style"; size: Theme.fs(14); color: Theme.c.accentBright }
+                Label { anchors.verticalCenter: parent.verticalCenter; text: "Save as theme"; font.pixelSize: Theme.fs(12); color: Theme.c.fg }
+            }
+            MouseArea { id: km; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        onClicked: { WallTheme.keep(); Themes.close() } }
+        }
+
             }
         }
     }

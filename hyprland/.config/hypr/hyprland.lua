@@ -51,6 +51,9 @@ hl.gesture({
 	direction = "horizontal",
 	action = "workspace",
 })
+-- the swipe steps through every workspace, 1, 2, 3…, empty ones too (by
+-- default it skips to the next one with windows)
+hl.config({ gestures = { workspace_swipe_use_r = true } })
 
 -- hl.device({ name = "epic-mouse-v1", sensitivity = -0.5 })
 
