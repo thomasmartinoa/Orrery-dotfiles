@@ -45,7 +45,7 @@ hl.bind(mainMod .. " + T", hl.dsp.window.float({ action = "toggle" })) -- Float 
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("~/.config/hypr/scripts/launcher.sh")) -- App launcher
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit")) -- Toggle split
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("~/.config/hypr/scripts/lock.sh")) -- Lock screen
-hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser)) -- Browser
+hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("~/.config/hypr/scripts/browser.sh " .. browser)) -- Browser (debounced)
 hl.bind(mainMod .. " + CTRL + R", hl.dsp.exec_cmd("~/.config/hypr/scripts/shell.sh restart")) -- Restart the shell
 hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd("qs ipc call bar toggle")) -- Bar style: Legacy, Floating, Minimal
 hl.bind(mainMod .. " + CTRL + I", hl.dsp.exec_cmd("~/.config/hypr/scripts/caffeine.sh toggle")) -- Caffeine (stay awake)
