@@ -16,12 +16,19 @@ Singleton {
 
     property var data: ({ updated: 0, accounts: [], tokens: { days: [], models: [] } })
     readonly property var accounts: data.accounts || []
-    readonly property var tokens: data.tokens || { days: [], models: [] }
+    readonly property var noTokens: ({ days: [], models: [], messages: 0, sessions: 0 })
+    // the selected agent's own numbers, never another agent's
+    readonly property var tokens: (data.tokensByAgent || {})[defaultAgent] || noTokens
     readonly property bool present: accounts.length > 0
-    readonly property var primary: accounts[0] || null
+    readonly property var primary: accounts.find(a => a.id === defaultAgent) || null
     // the number in the bar: the session limit of the first account
-    readonly property var session: primary ? (primary.limits || []).find(l => l.name.indexOf("Session") === 0) || primary.limits[0] || null : null
-    readonly property string defaultAgent: (Config.data.agents && Config.data.agents.default) || (primary ? primary.id : "")
+    // Only show a true session quota in the bar. Provider budgets (e.g.
+    // OpenRouter's) belong in the panel and must not masquerade as this meter.
+    readonly property var session: primary ? (primary.limits || []).find(l => l.name.indexOf("Session") === 0) || null : null
+    // the configured default, or the first agent found when it is not installed (any more)
+    readonly property string configured: (Config.data.agents && Config.data.agents.default) || ""
+    readonly property string defaultAgent: accounts.some(a => a.id === configured) ? configured : (accounts[0] ? accounts[0].id : "")
+    function icon(id) { return id === "claude" ? "󰛄" : id === "opencode" ? "code" : id === "codex" ? "terminal" : id === "qwen" ? "smart_toy" : "smart_toy" }
     property bool busy: false
     readonly property int updated: data.updated || 0
 
@@ -29,6 +36,10 @@ Singleton {
     function launch(name) { Quickshell.execDetached([bin, "launch"].concat(name ? [name] : [])) }
     function setDefault(name) { Config.set("agents.default", name) }
 
+    function fmtStat(s) {
+        if (s.kind === "usd") return "$" + s.value.toFixed(2)
+        return s.kind === "tokens" ? fmtTokens(s.value) : String(s.value)
+    }
     function fmtTokens(n) {
         if (n >= 1e9) return (n / 1e9).toFixed(1) + "B"
         if (n >= 1e6) return (n / 1e6).toFixed(1) + "M"

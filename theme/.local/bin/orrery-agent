@@ -21,7 +21,7 @@ SKILL_DIRS=("$HOME/.claude/skills" "$HOME/.agents/skills" "$HOME/.codex/skills"
             "$HOME/.config/opencode/skills" "$HOME/.gemini/config/skills" "$HOME/.pi/agent/skills")
 # command → label; anything on PATH from this list is offered
 KNOWN=(claude:"Claude Code" codex:"Codex" opencode:"OpenCode" gemini:"Gemini CLI" copilot:"GitHub Copilot"
-       crush:"Crush" grok:"Grok" pi:"Pi" ori:"Ori" aider:"Aider" goose:"Goose")
+       qwen:"Qwen Code" crush:"Crush" grok:"Grok" pi:"Pi" ori:"Ori" aider:"Aider" goose:"Goose")
 
 die() { printf 'orrery-agent: %s\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
