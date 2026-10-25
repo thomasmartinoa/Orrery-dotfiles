@@ -28,6 +28,12 @@ Panel {
     readonly property real dayMax: Math.max(1, ...days.map(d => d.total))
     readonly property real week: days.reduce((s, d) => s + d.total, 0)
     readonly property int modelRows: 4
+    // quota colour: calm until it matters. Hued themes warn at 75% and go red at 90%;
+    // the grey themes dim the figure instead of using colour.
+    function tone(pc) { return Theme.hued ? (pc >= 90 ? Theme.c.critical : pc >= 75 ? Theme.c.warning : Theme.c.accentBright)
+                                          : (pc >= 90 ? Theme.c.accentDim : Theme.c.accentBright) }
+    // index of the bar under the mouse (-1 none): its day replaces the weekly total
+    property int hoverDay: -1
 
     // the panel's rows are sized from one real line of text
     Label { id: line; visible: false; font.pixelSize: Theme.fs(11); text: "Ag" }
@@ -57,7 +63,7 @@ Panel {
                 required property var modelData
                 width: (parent.width - 6 * (Agents.accounts.length - 1)) / Math.max(1, Agents.accounts.length)
                 icon: Agents.icon(modelData.id)
-                text: modelData.name.replace(/ (Code|CLI)$/, "")
+                text: Agents.accounts.length > 2 ? modelData.name.replace(/ (Code|CLI)$/, "") : modelData.name
                 primary: modelData.id === Agents.defaultAgent
                 onClicked: Agents.setDefault(modelData.id)
             }
@@ -72,7 +78,19 @@ Panel {
         // ---- name and plan -------------------------------------------
         Row {
             width: parent.width
-            Label { text: p.acct ? p.acct.name : ""; font.pixelSize: Theme.fs(13); font.weight: Font.DemiBold; color: Theme.c.fg; width: parent.width - plan.width }
+            Label { text: p.acct ? p.acct.name : ""; font.pixelSize: Theme.fs(13); font.weight: Font.DemiBold; color: Theme.c.fg
+                    width: parent.width - plan.width - (site.visible ? site.width + 6 : 0) }
+            // the provider's own usage page, for the numbers this panel can't see
+            Rectangle {
+                id: site
+                visible: !!p.acct && !!p.acct.url
+                width: 22; height: 18; radius: Theme.radiusSm
+                color: siteHover.containsMouse ? Theme.c.bg3 : Theme.c.bg2; border.width: 1; border.color: Theme.c.border
+                Icon { anchors.centerIn: parent; icon: "open_in_new"; size: Theme.fs(11); color: Theme.c.accentMid }
+                MouseArea { id: siteHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: { Agents.openUrl(p.acct.url); Panels.close() } }
+            }
+            Item { visible: site.visible; width: 6; height: 1 }
             Rectangle {
                 id: plan
                 visible: !!p.acct && p.acct.plan !== ""
@@ -105,7 +123,7 @@ Panel {
                                     width: Math.max(0, parent.width - pct.width - reset.width); elide: Text.ElideRight }
                             Label { id: reset; text: { void p.now; return Agents.resetsIn(modelData.resets_at) } font.pixelSize: Theme.fs(11); color: Theme.c.accentMid; rightPadding: 8 }
                             Label { id: pct; text: modelData.percent + "%"; font.pixelSize: Theme.fs(11); font.weight: Font.DemiBold
-                                    color: modelData.percent >= 90 ? Theme.c.accentDim : Theme.c.accentBright }
+                                    color: p.tone(modelData.percent) }
                         }
                         Rectangle {
                             width: parent.width; height: 6; radius: 3; color: Theme.c.bg2
@@ -114,7 +132,7 @@ Panel {
                                         x: parent.width * (modelData.elapsed || 0) / 100 - 1; width: 2; height: 10; y: -2; z: 1
                                         color: Theme.c.fg; opacity: 0.6 }
                             Rectangle { width: Math.max(6, parent.width * Math.min(100, modelData.percent) / 100); height: parent.height; radius: 3
-                                        color: modelData.percent >= 90 ? Theme.c.accentMid : Theme.c.accentBright
+                                        color: p.tone(modelData.percent)
                                         Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } } }
                         }
                     }
@@ -170,8 +188,10 @@ Panel {
         opacity: p.fade
         Row {
             width: parent.width
-            Label { text: "Tokens · last 7 days"; font.pixelSize: Theme.fs(11); color: Theme.c.accentMid; width: parent.width - wk.width }
-            Label { id: wk; text: Agents.fmtTokens(p.week); font.pixelSize: Theme.fs(11); color: Theme.c.fg }
+            Label { text: p.hoverDay < 0 ? "Tokens (with cache) · last 7 days" : Qt.formatDate(new Date(p.days[p.hoverDay].date + "T12:00:00"), "dddd d MMM")
+                    font.pixelSize: Theme.fs(11); color: Theme.c.accentMid; width: parent.width - wk.width }
+            Label { id: wk; text: Agents.fmtTokens(p.hoverDay < 0 ? p.week : p.days[p.hoverDay].total)
+                    font.pixelSize: Theme.fs(11); color: Theme.c.fg }
         }
         Row {
             id: chart
@@ -179,23 +199,30 @@ Panel {
             readonly property real bw: (width - spacing * 6) / 7
             Repeater {
                 model: 7
-                Column {
+                Item {
+                    id: bar
                     required property int index
                     readonly property var day: p.days[index]
-                    width: chart.bw; height: chart.height; spacing: 3
-                    Item {
-                        width: parent.width; height: parent.height - 14
-                        Rectangle {
-                            anchors.bottom: parent.bottom; width: parent.width
-                            height: Math.max(2, parent.height * day.total / p.dayMax)
-                            radius: 2
-                            color: index === 6 ? Theme.c.accentBright : Theme.c.accentMid
-                            Behavior on height { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+                    width: chart.bw; height: chart.height
+                    Column {
+                        anchors.fill: parent; spacing: 3
+                        Item {
+                            width: parent.width; height: parent.height - 14
+                            Rectangle {
+                                anchors.bottom: parent.bottom; width: parent.width
+                                height: Math.max(2, parent.height * bar.day.total / p.dayMax)
+                                radius: 2
+                                color: bar.index === p.hoverDay || (p.hoverDay < 0 && bar.index === 6) ? Theme.c.accentBright : Theme.c.accentMid
+                                Behavior on height { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+                            }
                         }
+                        Label { anchors.horizontalCenter: parent.horizontalCenter
+                                text: bar.day.date ? Qt.formatDate(new Date(bar.day.date + "T12:00:00"), "ddd").slice(0, 2) : ""
+                                font.pixelSize: Theme.fs(10.5); color: bar.index === 6 ? Theme.c.fg : Theme.c.accentMid }
                     }
-                    Label { anchors.horizontalCenter: parent.horizontalCenter
-                            text: day.date ? Qt.formatDate(new Date(day.date + "T12:00:00"), "ddd").slice(0, 2) : ""
-                            font.pixelSize: Theme.fs(10.5); color: index === 6 ? Theme.c.fg : Theme.c.accentMid }
+                    MouseArea { anchors.fill: parent; hoverEnabled: true
+                                onEntered: p.hoverDay = bar.index
+                                onExited: if (p.hoverDay === bar.index) p.hoverDay = -1 }
                 }
             }
         }
@@ -230,8 +257,9 @@ Panel {
         Column {
             width: parent.width - launch.width - refresh.width - 12
             anchors.verticalCenter: parent.verticalCenter; spacing: 1
-            Label { text: "Default: " + (Agents.defaultAgent || "none"); font.pixelSize: Theme.fs(12); color: Theme.c.fg }
-            Label { text: { void p.now; return "updated " + Agents.ago() } font.pixelSize: Theme.fs(10); color: Theme.c.accentMid; elide: Text.ElideRight; width: parent.width }
+            Label { text: "Default agent: " + (Agents.primary ? Agents.primary.name : "none"); font.pixelSize: Theme.fs(12); color: Theme.c.fg }
+            Label { text: { void p.now; return Agents.busy ? "updating…" : "updated " + Agents.ago() } font.pixelSize: Theme.fs(10)
+                    color: !Agents.busy && Date.now() / 1000 - Agents.updated > 1800 ? (Theme.hued ? Theme.c.warning : Theme.c.fg) : Theme.c.accentMid; elide: Text.ElideRight; width: parent.width }
         }
         PanelButton { id: refresh; icon: Agents.busy ? "sync" : "refresh"; onClicked: Agents.refresh() }
         PanelButton { id: launch; icon: "rocket_launch"; text: "Launch"; primary: true; enabled: Agents.defaultAgent !== ""

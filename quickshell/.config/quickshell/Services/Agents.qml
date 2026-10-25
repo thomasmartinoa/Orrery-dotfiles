@@ -50,6 +50,7 @@ Singleton {
 
     function refresh() { if (!busy) { busy = true; update.running = true } }
     function launch(name) { Quickshell.execDetached([bin, "launch"].concat(name ? [name] : [])) }
+    function openUrl(url) { if (url) Quickshell.execDetached(["xdg-open", url]) }
     function setDefault(name) { Config.set("agents.default", name) }
 
     function fmtStat(s) {

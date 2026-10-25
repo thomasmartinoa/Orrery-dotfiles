@@ -28,7 +28,8 @@ def claude():
     cred = os.path.join(HOME, ".claude/.credentials.json")
     if not os.path.exists(cred):
         return None
-    acct = {"id": "claude", "name": "Claude Code", "plan": "", "limits": [], "extra": None, "error": ""}
+    acct = {"id": "claude", "name": "Claude Code", "plan": "", "limits": [], "extra": None, "error": "",
+            "url": "https://claude.ai/settings/usage"}
     try:
         oauth = json.load(open(cred)).get("claudeAiOauth") or {}
     except (OSError, ValueError) as e:
@@ -77,6 +78,8 @@ def claude():
                         if first["percent"] >= first["elapsed"] + 15 and first["percent"] >= 50
                         else f"On pace: {first['percent']}% used, {first['elapsed']}% of the window gone")
     x = d.get("extra_usage") or {}
+    if not x.get("is_enabled"):
+        acct["providerDetail"] = "Extra usage is off"
     if x.get("is_enabled"):
         acct["extra"] = {"enabled": True, "used": x.get("used_credits"), "limit": x.get("monthly_limit"),
                          "percent": x.get("utilization"), "currency": x.get("currency") or "USD"}
@@ -396,13 +399,15 @@ def main():
             note=notice or quota_err or "Local token counts; quotas vary by provider.",
             limits=quota["limits"] if quota else [],
             providerDetail=quota["detail"] if quota else "",
-            providers=providers, warn=bool(notice)))
+            providers=providers, warn=bool(notice),
+            url="https://openrouter.ai/settings/credits" if "openrouter" in providers else "https://opencode.ai"))
         accounts[-1]["stats"] = stats(tok, cost)
 
     if installed("codex"):
         tok, limits, plan = codex_usage()
         tokens["codex"] = tok
         accounts.append(local_account("codex", "Codex", plan or "Local usage", tok, limits=limits,
+                                      url="https://chatgpt.com/codex/settings/usage",
                                       note="" if tok["models"] else "No usage recorded yet. Run codex once."))
     if installed("qwen"):
         tok = qwen_tokens()
