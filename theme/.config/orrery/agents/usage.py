@@ -1,19 +1,25 @@
 #!/usr/bin/env python3
-"""orrery-agent usage-update — collect coding-agent usage into one JSON file.
+"""orrery-agent usage-update: collect coding-agent usage into one JSON file.
 
 Writes ~/.local/state/orrery/agents.json:
   {
     "updated": <epoch>,
-    "accounts": [ { id, name, plan, limits: [ {name, percent, resets_at} ],
-                    extra: {enabled, used, limit} | null, error } ],
-    "tokens": { "days": [ {date, total, output} ... 7 ], "models": [ {model, total, output} ] }
+    "accounts": [ { id, name, plan, url, note, warn, error, providerDetail,
+                    limits: [ {name, percent, resets_at, elapsed?} ],
+                    extra: {enabled, used, limit} | null,
+                    stats: [ {label, value, kind} x3 ] } ],
+    "tokensByAgent": { <id>: { days: [ {date, total, output} x7 ],
+                               models: [ {model, total, output} ], messages, sessions } },
+    "tokens": <Claude's, for older readers>
   }
 
-Providers are functions returning an account dict (or None when the agent is
-not set up on this machine). Add one for another agent and it appears in
-the panel. Only the local credential files are read; nothing is written to
-them — if a token has expired the account is reported as such, and running
-the agent once refreshes it.
+An agent appears when its command is on PATH and goes when it is removed. Quotas
+come from the agent's own service (Claude: the account usage endpoint; OpenCode:
+OpenRouter's key endpoint; Codex: the rate limits it logs locally); token counts
+are always read from the agent's local logs. Credential files are only read,
+never written: if a token has expired the account says so, and running the
+agent once refreshes it. To add an agent: write a function that returns its
+tokens (use Tally) and add a block to main().
 """
 import glob, json, os, shutil, sqlite3, sys, time, urllib.request
 from datetime import datetime, timedelta, timezone
@@ -76,6 +82,7 @@ def claude():
     if first and "elapsed" in first:
         acct["note"] = ("Using the session faster than time passes: ease off"
                         if first["percent"] >= first["elapsed"] + 15 and first["percent"] >= 50
+                        else "Session just started" if first["elapsed"] < 5
                         else f"On pace: {first['percent']}% used, {first['elapsed']}% of the window gone")
     x = d.get("extra_usage") or {}
     if not x.get("is_enabled"):
@@ -127,7 +134,7 @@ def stats(tokens, cost=None):
 
 
 def installed(cmd):
-    return shutil.which(cmd) is not None or os.path.exists(os.path.join(HOME, ".local/bin", cmd))
+    return shutil.which(cmd) is not None     # the same test orrery-agent list uses
 
 
 # --------------------------------------------------- local token counts (Claude)
@@ -378,20 +385,46 @@ def local_account(id, name, plan, tokens, note="", **extra):
     return a
 
 
+# agents `orrery-agent list` offers that have no usage reader yet (keep in sync with its KNOWN list)
+OTHER_AGENTS = {"gemini": "Gemini CLI", "copilot": "GitHub Copilot", "crush": "Crush", "grok": "Grok",
+                "pi": "Pi", "ori": "Ori", "aider": "Aider", "goose": "Goose"}
+EMPTY = {"days": [], "models": [], "messages": 0, "sessions": 0}
+
+
+def safe(fn, *args):
+    """One agent's logs being odd must not take the others down."""
+    try:
+        return fn(*args)
+    except Exception:
+        return dict(EMPTY)
+
+
 def main():
     accounts, tokens = [], {}
-    if installed("claude") or os.path.exists(os.path.join(HOME, ".claude/.credentials.json")):
+    try:
+        previous = json.load(open(OUT))
+    except (OSError, ValueError):
+        previous = {}
+    if installed("claude"):
         try:
-            a = claude()
+            a = claude() or {"id": "claude", "name": "Claude Code", "plan": "", "limits": [], "extra": None,
+                             "error": "Not signed in: run claude", "url": "https://claude.ai/settings/usage"}
         except Exception as e:
             a = {"id": "claude", "name": "Claude Code", "plan": "", "limits": [], "extra": None, "error": str(e)}
-        if a:
-            tokens["claude"] = claude_tokens()
-            a["stats"] = stats(tokens["claude"])
-            accounts.append(a)
+        if a["error"] and not a["limits"]:
+            # the usage service said no (rate limit, offline): show the last numbers we had
+            old = next((x for x in previous.get("accounts", []) if x.get("id") == "claude"), None)
+            if old and old.get("limits"):
+                a["limits"], a["plan"] = old["limits"], a["plan"] or old.get("plan", "")
+        tokens["claude"] = safe(claude_tokens)
+        a["stats"] = stats(tokens["claude"])
+        accounts.append(a)
 
-    if installed("opencode") and os.path.isfile(OPENCODE_DB):
-        tok, cost, notice, providers = opencode_tokens()
+    if installed("opencode"):
+        try:
+            tok, cost, notice, providers = opencode_tokens()
+        except Exception:
+            tok, cost, notice, providers = dict(EMPTY), 0, "", []
         quota, quota_err = openrouter_limits() if "openrouter" in providers else (None, "")
         tokens["opencode"] = tok
         accounts.append(local_account(
@@ -404,16 +437,25 @@ def main():
         accounts[-1]["stats"] = stats(tok, cost)
 
     if installed("codex"):
-        tok, limits, plan = codex_usage()
+        try:
+            tok, limits, plan = codex_usage()
+        except Exception:
+            tok, limits, plan = dict(EMPTY), [], ""
         tokens["codex"] = tok
         accounts.append(local_account("codex", "Codex", plan or "Local usage", tok, limits=limits,
                                       url="https://chatgpt.com/codex/settings/usage",
                                       note="" if tok["models"] else "No usage recorded yet. Run codex once."))
     if installed("qwen"):
-        tok = qwen_tokens()
+        tok = safe(qwen_tokens)
         tokens["qwen"] = tok
         accounts.append(local_account("qwen", "Qwen Code", "Local usage", tok,
                                       note="" if tok["models"] else "No usage recorded yet."))
+
+    # every other agent orrery-agent knows: listed, so the panel agrees with the menu
+    for cmd, name in OTHER_AGENTS.items():
+        if installed(cmd):
+            tokens[cmd] = dict(EMPTY)
+            accounts.append(local_account(cmd, name, "", tokens[cmd], note=f"Usage isn't tracked for {name} yet."))
 
     data = {"updated": int(time.time()), "accounts": accounts,
             "tokens": tokens.get("claude", {"days": [], "models": []}), "tokensByAgent": tokens}

@@ -26,14 +26,12 @@ Singleton {
     readonly property var tokens: (data.tokensByAgent || {})[viewId] || noTokens
     readonly property bool present: accounts.length > 0
     readonly property var primary: accounts.find(a => a.id === defaultAgent) || null
-    // the number in the bar: the session limit of the first account
-    // Only show a true session quota in the bar. Provider budgets (e.g.
-    // OpenRouter's) belong in the panel and must not masquerade as this meter.
+    // the default agent's real session quota, if it has one (Claude's 5h, Codex's 5h)
     readonly property var session: primary ? (primary.limits || []).find(l => l.name.indexOf("Session") === 0) || null : null
     // the configured default, or the first agent found when it is not installed (any more)
     readonly property string configured: (Config.data.agents && Config.data.agents.default) || ""
     readonly property string defaultAgent: accounts.some(a => a.id === configured) ? configured : (accounts[0] ? accounts[0].id : "")
-    function icon(id) { return id === "claude" ? "󰛄" : id === "opencode" ? "code" : id === "codex" ? "terminal" : id === "qwen" ? "smart_toy" : "smart_toy" }
+    function icon(id) { return id === "claude" ? "󰛄" : id === "opencode" ? "code" : id === "codex" ? "terminal" : "smart_toy" }
     // The bar's text. It is always something, so the pill (and the panel
     // hanging from it) keeps one width whichever agent is selected: the
     // session quota if there is one, else the busiest limit, else today's tokens.
@@ -55,6 +53,9 @@ Singleton {
 
     function refresh() { if (!busy) { busy = true; update.running = true } }
     function launch(name) { Quickshell.execDetached([bin, "launch"].concat(name ? [name] : [])) }
+    // the usage panel's look: "detailed" or "minimal"
+    readonly property string style: ((Config.data.agents || {}).style === "minimal") ? "minimal" : "detailed"
+    function setStyle(name) { if (name === "minimal" || name === "detailed") Config.set("agents.style", name) }
     function openUrl(url) { if (url) Quickshell.execDetached(["xdg-open", url]) }
     function setDefault(name) { Config.set("agents.default", name) }
 
@@ -118,6 +119,7 @@ Singleton {
         target: "agents"
         function refresh(): void { root.refresh() }
         function launch(): void { root.launch("") }
+        function style(name: string): void { root.setStyle(name) }
         function session(): string { return root.session ? root.session.percent + "%" : "" }
     }
 }

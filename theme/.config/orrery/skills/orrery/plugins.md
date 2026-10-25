@@ -300,3 +300,14 @@ attached to a destroyed item and nothing appears. Panels open away from the
 bar's edge (`Panel.awayFromBar`), so a bottom or side bar still shows them. Long-running or interactive
 actions go through `orrery-float <cmd>` (floating terminal); config edits through
 `orrery-edit <file>` (validates Hyprland Lua on close).
+
+**Agents panel** (`Panels/AgentsPanel.qml`, data from `agents/usage.py` via
+`orrery-agent usage-update`). One tab per agent whose command is on PATH, so
+installing or removing one adds or drops its tab within a minute. Tabs only
+change the view; the star sets `agents.default` (the bar's number, right-click
+launch). Two looks, `agents.style` = `detailed | minimal`, switched in the
+panel, in Menu › Agents › Usage panel look, or with `orrery-agent style`.
+Rules that kept it from jumping: every section has a reserved height (the
+tallest of any agent), the seven day-bars always exist (their height animates),
+and the bar pill is constant width. A new agent is a token reader (use `Tally`)
+plus a block in `main()`; an agent with no reader still gets a tab.

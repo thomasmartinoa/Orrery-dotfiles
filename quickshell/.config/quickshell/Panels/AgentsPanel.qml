@@ -26,7 +26,7 @@ Panel {
     property int now: 0
     Timer { interval: 30000; running: p.open; repeat: true; onTriggered: p.now++ }
 
-    readonly property bool mini: ((Config.data.agents || {}).style || "detailed") === "minimal"
+    readonly property bool mini: Agents.style === "minimal"
     readonly property var acct: Agents.viewAccount
     readonly property bool isDefault: Agents.viewId === Agents.defaultAgent
     readonly property var days: {
@@ -81,7 +81,7 @@ Panel {
                 Label { id: modeLbl; anchors.centerIn: parent; text: p.mini ? "Detailed" : "Minimal"; font.pixelSize: Theme.fs(11)
                         color: modeHover.containsMouse ? Theme.c.fg : Theme.c.accentMid }
                 MouseArea { id: modeHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: Config.set("agents.style", p.mini ? "detailed" : "minimal") }
+                            onClicked: Agents.setStyle(p.mini ? "detailed" : "minimal") }
             }
         ]
     }
@@ -314,10 +314,13 @@ Panel {
                     }
                 }
             }
-            Label { id: wkMini; anchors.bottom: parent.bottom
+            // fixed width (the widest text it can show), right-aligned, so hovering a
+            // day never resizes the sparkline beside it
+            Label { id: wkMini; anchors.bottom: parent.bottom; width: wkMetrics.width; horizontalAlignment: Text.AlignRight
                     text: p.hoverDay < 0 ? Agents.fmtTokens(p.week) + " / 7d"
                           : Qt.formatDate(new Date(p.days[p.hoverDay].date + "T12:00:00"), "ddd") + " " + Agents.fmtTokens(p.days[p.hoverDay].total)
                     font.pixelSize: Theme.fs(11); color: Theme.c.accentMid }
+            TextMetrics { id: wkMetrics; font.family: wkMini.font.family; font.pixelSize: Theme.fs(11); text: "999.9M / 7d" }
         }
 
         // the busiest model and the session count (or cost)
