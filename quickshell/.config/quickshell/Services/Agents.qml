@@ -29,6 +29,22 @@ Singleton {
     readonly property string configured: (Config.data.agents && Config.data.agents.default) || ""
     readonly property string defaultAgent: accounts.some(a => a.id === configured) ? configured : (accounts[0] ? accounts[0].id : "")
     function icon(id) { return id === "claude" ? "󰛄" : id === "opencode" ? "code" : id === "codex" ? "terminal" : id === "qwen" ? "smart_toy" : "smart_toy" }
+    // The bar's text. It is always something, so the pill (and the panel
+    // hanging from it) keeps one width whichever agent is selected: the
+    // session quota if there is one, else the busiest limit, else today's tokens.
+    readonly property string barText: {
+        if (!primary) return ""
+        if (session) return session.percent + "%"
+        const ls = primary.limits || []
+        if (ls.length) return Math.max(...ls.map(l => l.percent)) + "%"
+        const st = (primary.stats || []).find(x => x.kind === "tokens")
+        return st ? (st.value > 0 ? fmtTokens(st.value) : "–") : ""
+    }
+    readonly property real barPercent: {
+        if (!primary) return -1
+        const ls = primary.limits || []
+        return session ? session.percent : ls.length ? Math.max(...ls.map(l => l.percent)) : -1
+    }
     property bool busy: false
     readonly property int updated: data.updated || 0
 
@@ -74,6 +90,21 @@ Singleton {
         onLoaded: { try { root.data = JSON.parse(text()) } catch (e) { console.warn("Agents: " + e) } }
         onLoadFailed: root.refresh()
     }
+    // An agent installed or removed shows up (or goes) within a minute, not
+    // after the next 15-minute refresh: compare `orrery-agent list` with what
+    // the data file knows.
+    Process {
+        id: detect
+        command: [root.bin, "list"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const found = text.split("\n").map(l => l.replace(/^[* ]+/, "").split(/\s+/)[0]).filter(x => x).sort().join(",")
+                const known = root.accounts.map(a => a.id).sort().join(",")
+                if (found !== known) root.refresh()
+            }
+        }
+    }
+    Timer { interval: 60 * 1000; running: true; repeat: true; onTriggered: if (!detect.running) detect.running = true }
     Timer { interval: 15 * 60 * 1000; running: true; repeat: true; onTriggered: root.refresh() }
     Component.onCompleted: refresh()
 

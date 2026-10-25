@@ -211,20 +211,57 @@ def opencode_tokens(days=7):
 
 
 # --------------------------------------------------------------- Codex usage
-def codex_tokens(days=7):
-    """Codex records tokens per thread (not per message): attribute each
-    thread's total to the day it was last updated."""
-    tally = Tally(days)
-    path = os.path.join(HOME, ".codex/state_5.sqlite")
-    try:
-        db = sqlite3.connect("file:" + path + "?mode=ro", uri=True, timeout=2)
-        for tid, upd, used, model in db.execute(
-                "SELECT id, updated_at, tokens_used, COALESCE(model,'codex') FROM threads WHERE archived=0"):
-            tally.add(datetime.fromtimestamp(upd, timezone.utc), int(used or 0), 0, model, tid)
-        db.close()
-    except (sqlite3.Error, OSError, ValueError, TypeError):
-        pass
-    return tally.result()
+def codex_usage(days=7):
+    """Codex writes one rollout file per session (~/.codex/sessions/**/rollout-*.jsonl).
+    Its token_count events carry the tokens of that turn and the account's
+    rate limits (5h and weekly windows), so everything is read locally.
+    Returns (tokens, limits, plan)."""
+    tally, limits, plan, newest = Tally(days), [], "", 0
+    root = os.path.join(HOME, ".codex")
+    for f in glob.glob(os.path.join(root, "sessions/**/rollout-*.jsonl"), recursive=True):
+        try:
+            if os.path.getmtime(f) < tally.since.timestamp():
+                continue
+            model, sid = "codex", os.path.basename(f)
+            with open(f, "rb") as fh:
+                for line in fh:
+                    if b'"turn_context"' in line:
+                        try:
+                            model = json.loads(line).get("payload", {}).get("model") or model
+                        except ValueError:
+                            pass
+                        continue
+                    if b'"token_count"' not in line:
+                        continue
+                    try:
+                        e = json.loads(line)
+                        pl = e.get("payload") or {}
+                        t = datetime.fromisoformat(e.get("timestamp", "").replace("Z", "+00:00"))
+                    except (ValueError, AttributeError):
+                        continue
+                    last = (pl.get("info") or {}).get("last_token_usage") or {}
+                    out = int(last.get("output_tokens", 0) or 0) + int(last.get("reasoning_output_tokens", 0) or 0)
+                    tally.add(t, int(last.get("total_tokens", 0) or 0), out, model, sid)
+                    rl = pl.get("rate_limits") or {}
+                    if rl and t.timestamp() >= newest:
+                        newest, plan = t.timestamp(), rl.get("plan_type") or plan
+                        limits = []
+                        for key, label in (("primary", "Session (5h)"), ("secondary", "Weekly")):
+                            w = rl.get(key) or {}
+                            if w.get("used_percent") is None:
+                                continue
+                            resets = w.get("resets_at")
+                            if resets is None and w.get("resets_in_seconds") is not None:
+                                resets = time.time() + w["resets_in_seconds"]
+                            lim = {"name": "Weekly" if (w.get("window_minutes") or 0) >= 10080 else label,
+                                   "percent": round(w["used_percent"]),
+                                   "resets_at": datetime.fromtimestamp(resets, timezone.utc).isoformat() if resets else ""}
+                            limits.append(lim)
+        except OSError:
+            continue
+    # a limit that already reset is not "used" any more
+    limits = [l for l in limits if not l["resets_at"] or datetime.fromisoformat(l["resets_at"]).timestamp() > time.time()]
+    return tally.result(), limits, plan.title()
 
 
 # ---------------------------------------------------------------- Qwen Code
@@ -356,18 +393,22 @@ def main():
         tokens["opencode"] = tok
         accounts.append(local_account(
             "opencode", "OpenCode", "Local usage", tok,
-            note=notice or quota_err or "Token counts are local; quotas depend on the provider.",
+            note=notice or quota_err or "Local token counts; quotas vary by provider.",
             limits=quota["limits"] if quota else [],
             providerDetail=quota["detail"] if quota else "",
             providers=providers, warn=bool(notice)))
         accounts[-1]["stats"] = stats(tok, cost)
 
-    for cmd, name, fn in (("codex", "Codex", codex_tokens), ("qwen", "Qwen Code", qwen_tokens)):
-        if installed(cmd):
-            tok = fn()
-            tokens[cmd] = tok
-            accounts.append(local_account(cmd, name, "Local usage", tok,
-                                          note="" if tok["models"] else "No usage recorded yet."))
+    if installed("codex"):
+        tok, limits, plan = codex_usage()
+        tokens["codex"] = tok
+        accounts.append(local_account("codex", "Codex", plan or "Local usage", tok, limits=limits,
+                                      note="" if tok["models"] else "No usage recorded yet. Run codex once."))
+    if installed("qwen"):
+        tok = qwen_tokens()
+        tokens["qwen"] = tok
+        accounts.append(local_account("qwen", "Qwen Code", "Local usage", tok,
+                                      note="" if tok["models"] else "No usage recorded yet."))
 
     data = {"updated": int(time.time()), "accounts": accounts,
             "tokens": tokens.get("claude", {"days": [], "models": []}), "tokensByAgent": tokens}

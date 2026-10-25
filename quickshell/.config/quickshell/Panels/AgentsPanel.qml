@@ -30,16 +30,16 @@ Panel {
     readonly property int modelRows: 4
 
     // the panel's rows are sized from one real line of text
-    TextMetrics { id: line; font.pixelSize: Theme.fs(11); text: "Ag" }
-    readonly property real limitH: line.height + 4 + 6                   // name row, gap, bar
+    Label { id: line; visible: false; font.pixelSize: Theme.fs(11); text: "Ag" }
+    readonly property real limitH: line.implicitHeight + 4 + 6                   // name row, gap, bar
     function headHeight(a) {                                             // limits + notes of one agent
         if (!a) return 0
         const n = (a.limits || []).length
         let h = n * limitH + Math.max(0, n - 1) * 8
-        for (const t of [a.error, a.note, a.providerDetail, a.extra ? "x" : ""]) if (t) h += line.height + 8
+        for (const t of [a.error, a.note, a.providerDetail, a.extra ? "x" : ""]) if (t) h += line.implicitHeight + 8
         return h
     }
-    readonly property real headReserve: Math.max(line.height + 8, ...Agents.accounts.map(a => headHeight(a)))
+    readonly property real headReserve: Math.max(line.implicitHeight + 8, ...Agents.accounts.map(a => headHeight(a)))
 
     // fade the details when another agent is picked
     property real fade: 1
@@ -57,7 +57,7 @@ Panel {
                 required property var modelData
                 width: (parent.width - 6 * (Agents.accounts.length - 1)) / Math.max(1, Agents.accounts.length)
                 icon: Agents.icon(modelData.id)
-                text: modelData.name
+                text: modelData.name.replace(/ (Code|CLI)$/, "")
                 primary: modelData.id === Agents.defaultAgent
                 onClicked: Agents.setDefault(modelData.id)
             }
@@ -91,7 +91,7 @@ Panel {
                 width: parent.width; spacing: 8
                 Label { visible: !!p.acct && p.acct.error !== ""; width: parent.width; wrapMode: Text.Wrap
                         text: p.acct ? p.acct.error : ""; font.pixelSize: Theme.fs(11); color: Theme.hued ? Theme.c.warning : Theme.c.accentBright }
-                Label { visible: !!p.acct && !!p.acct.note; width: parent.width; wrapMode: Text.Wrap
+                Label { visible: !!p.acct && !!p.acct.note; width: parent.width; elide: Text.ElideRight
                         text: p.acct ? (p.acct.note || "") : ""; font.pixelSize: Theme.fs(11)
                         color: p.acct && p.acct.warn ? (Theme.hued ? Theme.c.warning : Theme.c.accentBright) : Theme.c.accentMid }
                 Repeater {
@@ -212,7 +212,7 @@ Panel {
             Item {
                 required property int index
                 readonly property var m: (Agents.tokens.models || [])[index]
-                width: parent.width; height: line.height
+                width: parent.width; height: line.implicitHeight
                 Label { text: m ? m.model : index === 0 ? "No usage yet" : ""; font.pixelSize: Theme.fs(11); color: m ? Theme.c.fg : Theme.c.accentMid
                         width: parent.width - tot.width - 8; elide: Text.ElideRight }
                 Label { id: tot; visible: !!m; anchors.right: parent.right
