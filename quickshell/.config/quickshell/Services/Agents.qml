@@ -16,19 +16,53 @@ Singleton {
 
     property var data: ({ updated: 0, accounts: [], tokens: { days: [], models: [] } })
     readonly property var accounts: data.accounts || []
-    readonly property var tokens: data.tokens || { days: [], models: [] }
+    readonly property var noTokens: ({ days: [], models: [], messages: 0, sessions: 0 })
+    // The panel can look at any agent without changing the default (the one
+    // the bar shows and Launch starts); `viewing` is that choice, "" = the default.
+    property string viewing: ""
+    readonly property string viewId: accounts.some(a => a.id === viewing) ? viewing : defaultAgent
+    readonly property var viewAccount: accounts.find(a => a.id === viewId) || null
+    // the viewed agent's own numbers, never another agent's
+    readonly property var tokens: (data.tokensByAgent || {})[viewId] || noTokens
     readonly property bool present: accounts.length > 0
-    readonly property var primary: accounts[0] || null
-    // the number in the bar: the session limit of the first account
-    readonly property var session: primary ? (primary.limits || []).find(l => l.name.indexOf("Session") === 0) || primary.limits[0] || null : null
-    readonly property string defaultAgent: (Config.data.agents && Config.data.agents.default) || (primary ? primary.id : "")
+    readonly property var primary: accounts.find(a => a.id === defaultAgent) || null
+    // the default agent's real session quota, if it has one (Claude's 5h, Codex's 5h)
+    readonly property var session: primary ? (primary.limits || []).find(l => l.name.indexOf("Session") === 0) || null : null
+    // the configured default, or the first agent found when it is not installed (any more)
+    readonly property string configured: (Config.data.agents && Config.data.agents.default) || ""
+    readonly property string defaultAgent: accounts.some(a => a.id === configured) ? configured : (accounts[0] ? accounts[0].id : "")
+    function icon(id) { return id === "claude" ? "󰛄" : id === "opencode" ? "code" : id === "codex" ? "terminal" : "smart_toy" }
+    // The bar's text. It is always something, so the pill (and the panel
+    // hanging from it) keeps one width whichever agent is selected: the
+    // session quota if there is one, else the busiest limit, else today's tokens.
+    readonly property string barText: {
+        if (!primary) return ""
+        if (session) return session.percent + "%"
+        const ls = primary.limits || []
+        if (ls.length) return Math.max(...ls.map(l => l.percent)) + "%"
+        const st = (primary.stats || []).find(x => x.kind === "tokens")
+        return st ? (st.value > 0 ? fmtTokens(st.value) : "–") : ""
+    }
+    readonly property real barPercent: {
+        if (!primary) return -1
+        const ls = primary.limits || []
+        return session ? session.percent : ls.length ? Math.max(...ls.map(l => l.percent)) : -1
+    }
     property bool busy: false
     readonly property int updated: data.updated || 0
 
     function refresh() { if (!busy) { busy = true; update.running = true } }
     function launch(name) { Quickshell.execDetached([bin, "launch"].concat(name ? [name] : [])) }
+    // the usage panel's look: "detailed" or "minimal"
+    readonly property string style: ((Config.data.agents || {}).style === "minimal") ? "minimal" : "detailed"
+    function setStyle(name) { if (name === "minimal" || name === "detailed") Config.set("agents.style", name) }
+    function openUrl(url) { if (url) Quickshell.execDetached(["xdg-open", url]) }
     function setDefault(name) { Config.set("agents.default", name) }
 
+    function fmtStat(s) {
+        if (s.kind === "usd") return "$" + s.value.toFixed(2)
+        return s.kind === "tokens" ? fmtTokens(s.value) : String(s.value)
+    }
     function fmtTokens(n) {
         if (n >= 1e9) return (n / 1e9).toFixed(1) + "B"
         if (n >= 1e6) return (n / 1e6).toFixed(1) + "M"
@@ -63,6 +97,21 @@ Singleton {
         onLoaded: { try { root.data = JSON.parse(text()) } catch (e) { console.warn("Agents: " + e) } }
         onLoadFailed: root.refresh()
     }
+    // An agent installed or removed shows up (or goes) within a minute, not
+    // after the next 15-minute refresh: compare `orrery-agent list` with what
+    // the data file knows.
+    Process {
+        id: detect
+        command: [root.bin, "list"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const found = text.split("\n").map(l => l.replace(/^[* ]+/, "").split(/\s+/)[0]).filter(x => x).sort().join(",")
+                const known = root.accounts.map(a => a.id).sort().join(",")
+                if (found !== known) root.refresh()
+            }
+        }
+    }
+    Timer { interval: 60 * 1000; running: true; repeat: true; onTriggered: if (!detect.running) detect.running = true }
     Timer { interval: 15 * 60 * 1000; running: true; repeat: true; onTriggered: root.refresh() }
     Component.onCompleted: refresh()
 
@@ -70,6 +119,7 @@ Singleton {
         target: "agents"
         function refresh(): void { root.refresh() }
         function launch(): void { root.launch("") }
+        function style(name: string): void { root.setStyle(name) }
         function session(): string { return root.session ? root.session.percent + "%" : "" }
     }
 }

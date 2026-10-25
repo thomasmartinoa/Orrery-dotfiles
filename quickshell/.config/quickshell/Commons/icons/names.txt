@@ -168,3 +168,4 @@ add_photo_alternate
 blur_on
 blur_off
 lens_blur
+star

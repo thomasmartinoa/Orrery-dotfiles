@@ -81,6 +81,9 @@ Singleton {
         case "bar.pill":  return Theme.barStyle === "pill"
         case "bar.floating": return Theme.barStyle === "floating"
         case "bar.minimal": return Theme.barStyle === "minimal"
+        case "agents.minimal":  return Agents.style === "minimal"
+        case "agents.detailed": return Agents.style === "detailed"
+        case "agents.look":     return Agents.style === "minimal" ? "Minimal" : "Detailed"
         case "bar.style":   return ({ pill: "Legacy", floating: "Floating", minimal: "Minimal" })[Theme.barStyle] || ""
         case "bar.position": return Config.position.charAt(0).toUpperCase() + Config.position.slice(1)
         case "dock.positionLabel": return Dock.position.charAt(0).toUpperCase() + Dock.position.slice(1)
