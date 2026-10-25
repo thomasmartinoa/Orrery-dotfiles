@@ -17,8 +17,13 @@ Singleton {
     property var data: ({ updated: 0, accounts: [], tokens: { days: [], models: [] } })
     readonly property var accounts: data.accounts || []
     readonly property var noTokens: ({ days: [], models: [], messages: 0, sessions: 0 })
-    // the selected agent's own numbers, never another agent's
-    readonly property var tokens: (data.tokensByAgent || {})[defaultAgent] || noTokens
+    // The panel can look at any agent without changing the default (the one
+    // the bar shows and Launch starts); `viewing` is that choice, "" = the default.
+    property string viewing: ""
+    readonly property string viewId: accounts.some(a => a.id === viewing) ? viewing : defaultAgent
+    readonly property var viewAccount: accounts.find(a => a.id === viewId) || null
+    // the viewed agent's own numbers, never another agent's
+    readonly property var tokens: (data.tokensByAgent || {})[viewId] || noTokens
     readonly property bool present: accounts.length > 0
     readonly property var primary: accounts.find(a => a.id === defaultAgent) || null
     // the number in the bar: the session limit of the first account

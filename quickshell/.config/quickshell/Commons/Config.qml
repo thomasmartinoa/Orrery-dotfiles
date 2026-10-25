@@ -54,7 +54,7 @@ Singleton {
         // is derived from it through Theme.fs()
         font: { size: 12, family: "" },   // "" = the rice's own font
         // coding agents (orrery-agent): which one SUPER+SHIFT+CTRL+A and the bar launch
-        agents: { default: "" }
+        agents: { default: "", style: "detailed" }   // style: detailed | minimal (the usage panel)
     })
 
     property var data: JSON.parse(JSON.stringify(defaults))
