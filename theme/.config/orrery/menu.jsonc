@@ -145,6 +145,9 @@
   "agents.launch": {"icon":"󱚝","label":"Launch default agent","value":"agent","action":"orrery-agent launch"},
   "agents.list": {"icon":"󰚩","label":"Launch…","provider":"agents"},
   "agents.usage": {"icon":"data_usage","label":"Usage & limits","action":"qs ipc call panels open agents"},
+  "agents.look": {"icon":"tune","label":"Usage panel look","description":"minimal detailed compact","value":"agents.look"},
+  "agents.look.detailed": {"icon":"data_usage","label":"Detailed","description":"limits facts week chart models","checked":"agents.detailed","action":"qs ipc call agents style detailed","keep":true},
+  "agents.look.minimal": {"icon":"horizontal_rule","label":"Minimal","description":"limits sparkline one line","checked":"agents.minimal","action":"qs ipc call agents style minimal","keep":true},
   "agents.default": {"icon":"check_circle","label":"Default agent","value":"agent","provider":"agents.default"},
   "agents.skills": {"icon":"extension","label":"Link /orrery skill into agents","action":"orrery-float orrery-agent skills install"},
 

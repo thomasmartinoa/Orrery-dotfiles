@@ -6,6 +6,7 @@
 #   orrery-agent launch [name]      open the agent in a terminal (default agent if no name)
 #   orrery-agent usage-update       refresh ~/.local/state/orrery/agents.json (bar + panel data)
 #   orrery-agent usage              print that data
+#   orrery-agent style [detailed|minimal]   the usage panel's look (show or set)
 #   orrery-agent skills install     link the /orrery skill into every agent's skills dir
 #   orrery-agent skills status      where it is linked
 #
@@ -21,7 +22,7 @@ SKILL_DIRS=("$HOME/.claude/skills" "$HOME/.agents/skills" "$HOME/.codex/skills"
             "$HOME/.config/opencode/skills" "$HOME/.gemini/config/skills" "$HOME/.pi/agent/skills")
 # command → label; anything on PATH from this list is offered
 KNOWN=(claude:"Claude Code" codex:"Codex" opencode:"OpenCode" gemini:"Gemini CLI" copilot:"GitHub Copilot"
-       crush:"Crush" grok:"Grok" pi:"Pi" ori:"Ori" aider:"Aider" goose:"Goose")
+       qwen:"Qwen Code" crush:"Crush" grok:"Grok" pi:"Pi" ori:"Ori" aider:"Aider" goose:"Goose")
 
 die() { printf 'orrery-agent: %s\n' "$*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
@@ -65,6 +66,18 @@ case "${1:-}" in
             alacritty) exec setsid -f alacritty --class "agent-$agent" --working-directory "$HOME" -e "$agent" ;;
             *)         exec setsid -f "$term" -e "$agent" ;;
         esac ;;
+    style)
+        if [[ -n "${2:-}" ]]; then
+            [[ "$2" == detailed || "$2" == minimal ]] || die "style: detailed or minimal"
+            have jq || die "jq is needed to edit $CONF"
+            mkdir -p "$(dirname "$CONF")"
+            [[ -f "$CONF" ]] || printf '{}\n' > "$CONF"
+            tmp="$(mktemp)"
+            jq --arg s "$2" '.agents.style = $s' "$CONF" > "$tmp" && mv "$tmp" "$CONF"
+            printf 'usage panel: %s\n' "$2"
+        else
+            have jq && jq -r '.agents.style // "detailed"' "$CONF" 2>/dev/null || echo detailed
+        fi ;;
     usage-update)
         exec python3 "$COLLECT" "${@:2}" ;;
     usage)
@@ -99,5 +112,5 @@ case "${1:-}" in
             *) die "skills install|status" ;;
         esac ;;
     *)
-        sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+        sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

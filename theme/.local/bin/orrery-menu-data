@@ -82,13 +82,15 @@ def state():
 
 
 # brand logos: Material Symbols has none, so these stay Nerd Font glyphs
-AGENT_ICONS = {"claude": "󰛄", "codex": "", "opencode": "", "gemini": "󰊭", "copilot": ""}
+AGENT_ICONS = {"claude": "󰛄", "codex": "", "opencode": "code", "qwen": "smart_toy", "gemini": "󰊭", "copilot": ""}
 
 
 def agents(default):
     out = []
     for line in sh("orrery-agent list").splitlines():
-        m = re.match(r"[* ] +(\S+)\s+(.*?)(?: \(default\))?$", line)
+        # `sh()` strips the whole output, which removes the first row's
+        # leading default-marker padding. Accept both marked and unmarked rows.
+        m = re.match(r"^\s*\*?\s*(\S+)\s+(.*?)(?: \(default\))?$", line)
         if not m:
             continue
         cmd, label = m.group(1), m.group(2)

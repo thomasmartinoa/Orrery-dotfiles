@@ -105,7 +105,10 @@ The shell starts from `autostart.lua` (`scripts/shell.sh start`), which also
 runs `orrery-theme apps` so editors and browsers installed since the last
 theme switch get the theme. The keybind scripts (`launcher.sh`, `clipboard.sh`,
 `powermenu.sh`, `orrery-theme-menu`) go through `shell.sh call <target> <fn>`,
-which starts the shell first if it isn't running. Idle
+which starts the shell first if it isn't running. A keybind script that
+debounces with `flock` (`browser.sh`) must launch the app with `9>&-`:
+otherwise the app inherits the lock fd, holds the lock while it runs, and
+every later press is silently ignored. Idle
 timers live in `Services/Idle.qml` (dim/lock/dpms/suspend seconds); caffeine
 pauses them (`caffeine.sh toggle`, `qs ipc call caffeine toggle`). Lock is
 the shell's `WlSessionLock` (PAM "hyprlock"); `hypridle.conf` only bridges
