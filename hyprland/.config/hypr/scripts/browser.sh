@@ -5,8 +5,11 @@ cmd="${1:?usage: browser.sh <browser-command>}"
 lock="${XDG_RUNTIME_DIR:-/tmp}/orrery-browser.lock"
 exec 9>"$lock"
 flock -n 9 || exit 0
-now=$(date +%s.%N)
+now=$(date +%s%3N)
 last=$(cat "$lock.t" 2>/dev/null || echo 0)
-if [ "$(echo "$now - $last < 2" | bc -l)" = 1 ]; then exit 0; fi
+[[ $last =~ ^[0-9]+$ ]] || last=0
+if (( now - last < 2000 )); then exit 0; fi
 echo "$now" > "$lock.t"
-setsid "$cmd" >/dev/null 2>&1 &
+# 9>&- : the browser must not inherit the lock fd, or it holds the lock for
+# as long as it runs and every later press is ignored.
+setsid "$cmd" >/dev/null 2>&1 9>&- &
