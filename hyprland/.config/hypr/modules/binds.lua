@@ -37,10 +37,11 @@ local mainMod = "SUPER"
 ---- KEYBINDINGS ----
 ---------------------
 
-hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd(terminal)) -- Terminal
+-- orrery-launch shows "Starting <app>…" until the window opens (slow apps only)
+hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd("orrery-launch " .. terminal)) -- Terminal
 hl.bind(mainMod .. " + Q", hl.dsp.window.close()) -- Close window
 hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("~/.config/hypr/scripts/powermenu.sh")) -- Power menu
-hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager)) -- File manager
+hl.bind(mainMod .. " + E", hl.dsp.exec_cmd("orrery-launch " .. fileManager)) -- File manager
 hl.bind(mainMod .. " + T", hl.dsp.window.float({ action = "toggle" })) -- Float window
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("~/.config/hypr/scripts/launcher.sh")) -- App launcher
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit")) -- Toggle split

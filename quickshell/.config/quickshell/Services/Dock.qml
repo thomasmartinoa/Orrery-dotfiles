@@ -79,6 +79,8 @@ Singleton {
     // object after Quickshell re-reads the desktop files
     function launch(item) {
         const e = entryFor(item.key)
+        if (e) Launching.forEntry(e)
+        else if (item.key) Launching.forCommand(item.key)
         if (e && typeof e.execute === "function") e.execute()
         else if (item.entry) Quickshell.execDetached(["gtk-launch", item.key])
         else if (item.key) Quickshell.execDetached(["sh", "-c", item.key])

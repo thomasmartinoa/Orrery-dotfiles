@@ -12,7 +12,7 @@ Commons/Theme.qml         colours from current/colors.json: Theme.c.bg0..bg4, fg
 Commons/Config.qml        shell.json: Config.position/vertical/transparent, layoutFor(), moduleDef(),
                           set("a.b", v) — writes the file, everything rebinds
 Services/*.qml            singletons (pragma Singleton) with IpcHandler: Notifs, Panels, Themes,
-                          Wallpaper, Lock, Idle, Caffeine, Osd, Apps, Clip, Agents, Menu, Dock
+                          Wallpaper, Lock, Idle, Caffeine, Osd, Launching, Apps, Clip, Agents, Menu, Dock
 Bar/Bar.qml               per-screen PanelWindow, gestures (drag to edge, double-click transparent)
 Bar/Pill.qml              the module container: pill skin (bordered) / floating + minimal (flat)
 Bar/WidgetLoader.qml      id → widget map (add new built-in widgets here)
