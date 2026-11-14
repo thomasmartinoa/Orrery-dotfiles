@@ -21,7 +21,22 @@ Scope {
     IpcHandler {
         target: "powermenu"
         function toggle(): void { scope.open = !scope.open }
+        function open(): void { scope.open = true }
         function close(): void { scope.open = false }
+    }
+
+    // The laptop's power key opens this menu instead of logind powering off
+    // at once: the shell holds logind's power-key inhibitor and Hyprland binds
+    // XF86PowerOff to `powermenu open`. Only while the shell runs and the
+    // screen is unlocked: if the shell is gone, or on the lock screen where
+    // the menu cannot show, the key does what logind is set to (power off).
+    // `cat` on the shell's stdin pipe ends (and the inhibitor with it) when
+    // the shell exits or crashes; `sleep infinity` would outlive it.
+    Process {
+        running: !Lock.locked
+        stdinEnabled: true
+        command: ["systemd-inhibit", "--what=handle-power-key", "--who=orrery-powermenu",
+                  "--why=The power key opens the power menu", "--mode=block", "cat"]
     }
 
     // the PNGs that came with wlogout, kept next to this file

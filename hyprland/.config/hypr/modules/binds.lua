@@ -134,6 +134,10 @@ hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = tr
 hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true }) -- Media play/pause
 hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true }) -- Media previous
 
+-- Laptop power key: open the power menu instead of powering off at once (the
+-- shell holds logind's power-key inhibitor while it runs; see Power/PowerMenu.qml)
+hl.bind("XF86PowerOff", hl.dsp.exec_cmd("~/.config/hypr/scripts/powermenu.sh open")) -- Power menu
+
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen({ mode = "fullscreen" })) -- Fullscreen
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen({ mode = "maximized" })) -- Maximize
 

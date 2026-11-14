@@ -134,7 +134,7 @@ screen, and puts back the configs the installer set aside. Packages stay install
 | `SUPER` `E` · `B` | File manager · browser |
 | `SUPER` `Q` · `T` · `F` | Close · float · fullscreen |
 | `SUPER` `1`–`0` | Go to workspace (add `SHIFT` to move the window there) |
-| `SUPER` `L` · `M` | Lock screen · power menu |
+| `SUPER` `L` · `M` | Lock screen · power menu (the laptop's power key opens it too) |
 | `SUPER` `CTRL` `SHIFT` `SPACE` | Theme picker |
 | `SUPER` `CTRL` `R` | Restart the shell |
 | `Print` · `SUPER` `Print` | Screenshot a region · the whole screen |
