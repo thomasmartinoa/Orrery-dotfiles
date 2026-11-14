@@ -1,5 +1,6 @@
 module Services
 singleton Caffeine 1.0 Caffeine.qml
+singleton Launching 1.0 Launching.qml
 singleton Panels 1.0 Panels.qml
 singleton Osd 1.0 Osd.qml
 singleton Wallpaper 1.0 Wallpaper.qml

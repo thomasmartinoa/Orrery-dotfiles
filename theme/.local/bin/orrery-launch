@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# orrery-launch <command> [args…] — start an app and show "Starting <app>…"
+# in the shell's OSD box until its window opens (the launcher and the dock do
+# this on their own). For your own keybinds:
+#   hl.bind("SUPER + G", hl.dsp.exec_cmd("orrery-launch gimp"))
+# Fast apps never show it (it waits ~0.4 s); Menu › Quick toggles turns it off.
+set -u
+if [[ $# -eq 0 || $1 == -h || $1 == --help ]]; then
+    sed -n '2,6s/^# \{0,1\}//p' "$0"; exit 0
+fi
+# tell the shell first (in the background: never hold up the app); without a
+# running shell this just fails quietly
+qs ipc call launching command "$*" >/dev/null 2>&1 &
+exec "$@"

@@ -53,6 +53,8 @@ Four themes ship with it: **Eclipse** (dark greys), **Zenith** (the same on whit
 - **One menu for everything** (`SUPER` `SPACE`): theme, wallpaper, bar, dock, fonts, Wi-Fi,
   Bluetooth, web apps, keybindings.
 - **Launcher and clipboard history** with image previews.
+- **"Starting Firefox…"**: an app that is slow to open says so in the volume box until its
+  window appears (Menu › Quick toggles to turn it off).
 - **Web apps**: turn any site into an app with its own window and dock icon.
 - **An `/orrery` skill** for Claude Code, Codex, OpenCode and Gemini: ask for a theme, a widget
   or a fix in plain words.
@@ -134,7 +136,7 @@ screen, and puts back the configs the installer set aside. Packages stay install
 | `SUPER` `E` · `B` | File manager · browser |
 | `SUPER` `Q` · `T` · `F` | Close · float · fullscreen |
 | `SUPER` `1`–`0` | Go to workspace (add `SHIFT` to move the window there) |
-| `SUPER` `L` · `M` | Lock screen · power menu |
+| `SUPER` `L` · `M` | Lock screen · power menu (the laptop's power key opens it too) |
 | `SUPER` `CTRL` `SHIFT` `SPACE` | Theme picker |
 | `SUPER` `CTRL` `R` | Restart the shell |
 | `Print` · `SUPER` `Print` | Screenshot a region · the whole screen |

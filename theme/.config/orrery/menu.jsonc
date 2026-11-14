@@ -116,6 +116,7 @@
   "toggle.bar": {"icon":"toolbar","label":"Bar","checked":"!bar.hidden","action":"qs ipc call bar visible","keep":true},
   "toggle.gaps": {"icon":"margin","label":"Window gaps","checked":"gaps","action":"orrery-toggle gaps","keep":true},
   "toggle.opacity": {"icon":"opacity","label":"Window transparency","checked":"opacity","action":"orrery-toggle opacity","keep":true},
+  "toggle.launch": {"icon":"rocket_launch","label":"Starting-app notice","description":"launch feedback opening loading slow apps osd","checked":"launch","action":"qs ipc call launching toggle","keep":true},
 
   // Devices
   "devices.wifi": {"icon":"wifi","label":"Wi-Fi","action":"qs ipc call panels open network"},

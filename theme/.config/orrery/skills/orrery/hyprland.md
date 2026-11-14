@@ -38,6 +38,8 @@ Dispatchers are `hl.dsp.*` (Lua form) — the shell also uses them through
 `Hyprland.dispatch("hl.dsp.focus({ workspace = 2 })")` when `Hyprland.usingLua`.
 For exotic ones check the Hyprland Lua docs at wiki.hypr.land (syntax changes
 between versions — fetch, don't recall). A keybind that ships with the rice goes in the README keybind table too.
+A key that opens an app runs it through `orrery-launch` (`exec_cmd("orrery-launch gimp")`):
+slow apps then show "Starting <app>…" until their window opens (Services/Launching.qml).
 
 ## Window / layer rules
 

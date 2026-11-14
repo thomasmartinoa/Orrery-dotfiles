@@ -97,6 +97,7 @@ Singleton {
         case "dock.position":    return Dock.position
         case "dock.transparent": return Dock.transparent
         case "caffeine": return Caffeine.on
+        case "launch":   return Launching.enabled
         case "dnd":      return Notifs.dnd
         case "laptop":   return !!laptop
         default:
@@ -106,7 +107,7 @@ Singleton {
         }
     }
     // rebinds rows when live state changes
-    readonly property var tick: [Theme.name, Theme.barStyle, Config.position, Config.transparent, Config.hidden, Config.batteryPercent, Caffeine.on, Notifs.dnd, Dock.cfg, data]
+    readonly property var tick: [Theme.name, Theme.barStyle, Config.position, Config.transparent, Config.hidden, Config.batteryPercent, Caffeine.on, Notifs.dnd, Dock.cfg, Launching.enabled, data]
 
     // ---- rows ------------------------------------------------------------
     readonly property var widgetIds: ["clock", "workspaces", "tray", "audio", "network", "bluetooth", "battery", "caffeine", "bell", "activewindow", "media", "sysmon", "netspeed", "nightlight", "keyboard", "agents"]

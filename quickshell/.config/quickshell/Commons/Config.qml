@@ -54,7 +54,9 @@ Singleton {
         // is derived from it through Theme.fs()
         font: { size: 12, family: "" },   // "" = the rice's own font
         // coding agents (orrery-agent): which one SUPER+SHIFT+CTRL+A and the bar launch
-        agents: { default: "", style: "detailed" }   // style: detailed | minimal (the usage panel)
+        agents: { default: "", style: "detailed" },  // style: detailed | minimal (the usage panel)
+        // "Starting <app>…" in the OSD box while an app opens (Services/Launching.qml)
+        launch: { feedback: true }
     })
 
     property var data: JSON.parse(JSON.stringify(defaults))

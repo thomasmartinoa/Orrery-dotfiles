@@ -86,7 +86,7 @@ Commands you will use (all `--help`/header-documented — read the script if uns
 | `orrery-wall-theme apply [img] [--mode auto\|dark\|light] [--style soft\|faithful\|vivid] [--accent N]` · `off` · `toggle` · `use <img>` · `preview <img>` | colours from the wallpaper: the generated "Wallpaper" theme (theming.md) |
 | `orrery-theme-preview [<id>]` | real screenshot for the theme picker → `themes/<id>/preview.jpg`; restores everything after |
 | `orrery-theme-menu theme|wallpaper` | open the carousel picker |
-| `qs ipc call <target> <fn> [args]` | talk to the running shell. Targets: `bar dock theme wallpaper picker launcher clipboard notifications panels powermenu lock caffeine osd agents menu walltheme` (`qs ipc show` lists functions) |
+| `qs ipc call <target> <fn> [args]` | talk to the running shell. Targets: `bar dock theme wallpaper picker launcher clipboard notifications panels powermenu lock caffeine osd launching agents menu walltheme` (`qs ipc show` lists functions) |
 | `qs log` | the shell's log (QML errors show here) |
 | `~/.config/hypr/scripts/shell.sh restart` | restart the shell (needed after new files/qmldir changes; hot-reload can serve stale code) |
 | `hyprctl reload && hyprctl configerrors` | after ANY Hyprland change; must print nothing |
@@ -95,6 +95,7 @@ Commands you will use (all `--help`/header-documented — read the script if uns
 | `orrery-fix-mic [status\|enable\|disable]` | re-detect a wired headset mic that stopped working (after sleep); `enable` = do it on every resume |
 | `orrery-font set <family>` · `orrery-text-size <px>` · `orrery-scale <n>` | desktop font, apparent text size (shell + GTK + terminals) and monitor scale |
 | `orrery-webapp add [--firefox\|--chromium] [name] <url> [icon]` · `remove <name>` · `list` | web apps: a site in a bare Firefox window (own profile) with its own launcher and dock icon (Menu › Web apps) |
+| `orrery-launch <cmd> [args]` | start an app with the "Starting <app>…" notice (use it in your own app keybinds) |
 | `orrery-terminal [path]` | open the default terminal (`orrery-default terminal`), in that folder; Thunar's "Open Terminal Here" uses it |
 | `orrery-border radius <px>` · `width <px>` · `reset` | corners (windows + shell; 0 = square) and window border thickness |
 | `orrery-look blur on\|off\|toggle\|light\|medium\|strong\|<1-20>` · `opacity <40-100>\|toggle` · `reset` | blur (windows, bar, panels, menus) and window transparency |

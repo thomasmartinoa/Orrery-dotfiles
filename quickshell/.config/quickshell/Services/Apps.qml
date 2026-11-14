@@ -37,6 +37,7 @@ Singleton {
         history[entry.id] = (history[entry.id] || 0) + 1
         history = Object.assign({}, history)
         hist.setText(JSON.stringify(history))
+        Launching.forEntry(entry)
         entry.execute()
         open = false
     }

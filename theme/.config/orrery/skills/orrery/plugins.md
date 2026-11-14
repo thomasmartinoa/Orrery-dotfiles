@@ -12,7 +12,7 @@ Commons/Theme.qml         colours from current/colors.json: Theme.c.bg0..bg4, fg
 Commons/Config.qml        shell.json: Config.position/vertical/transparent, layoutFor(), moduleDef(),
                           set("a.b", v) — writes the file, everything rebinds
 Services/*.qml            singletons (pragma Singleton) with IpcHandler: Notifs, Panels, Themes,
-                          Wallpaper, Lock, Idle, Caffeine, Osd, Apps, Clip, Agents, Menu, Dock
+                          Wallpaper, Lock, Idle, Caffeine, Osd, Launching, Apps, Clip, Agents, Menu, Dock
 Bar/Bar.qml               per-screen PanelWindow, gestures (drag to edge, double-click transparent)
 Bar/Pill.qml              the module container: pill skin (bordered) / floating + minimal (flat)
 Bar/WidgetLoader.qml      id → widget map (add new built-in widgets here)
@@ -112,7 +112,15 @@ Rules of the house:
   A singleton only comes alive when something references it, and so does its
   IpcHandler: one that must answer IPC from the start gets a `void Name.x` in
   the Scope at the top of `shell.qml`. `qs ipc call` prints "Target not found."
-  and still exits 0, so check its output, not its status.
+  and still exits 0, so check its output, not its status. Don't name an IPC
+  function `show`: `qs ipc call <target> show` lists the target instead of
+  calling it (the power menu uses `open`).
+- A `Process` child outlives the shell when it is killed or restarted, so a
+  long-running one like a `systemd-inhibit` lock must end with it: run `cat`
+  with `stdinEnabled: true` (EOF when the shell dies), not `sleep infinity`.
+  The power menu holds logind's `handle-power-key` lock this way, so the
+  laptop's power key (bound to `powermenu.sh open`) opens the menu and falls
+  back to logind's power-off when the shell is not running or the screen is locked.
   Built-in widgets go in `Bar/` + `Bar/qmldir` + a `case` in `WidgetLoader.qml`
   + the default layouts in `Commons/Config.qml` (and README's widget list if it ships).
 - **Overlays** (fullscreen things like launcher/picker) are a `Variants { model:
